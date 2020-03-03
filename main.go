@@ -65,15 +65,15 @@ func RequestList(url string) {
 func RequestPost(url string) Post {
 	res, err := http.Get(url)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
 	if res.StatusCode != 200 {
-		log.Fatal(res.StatusCode, res.Status)
+		log.Println(res.StatusCode, res.Status)
 	}
 
 	doc, err := goquery.NewDocumentFromResponse(res)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
 
 	var message Post
@@ -105,7 +105,7 @@ func RequestPost(url string) Post {
 }
 
 func Publish(pack Pack) {
-	message, _ := json.Marshal(pack)
+	message, _ := json.Marshal(pack.messages)
 	log.Println(string(message))
 	client.Publish("ib", message)
 }
@@ -125,7 +125,7 @@ func main() {
 		log.Println(pong)
 	}
 
-	for now := range time.Tick(time.Second * 10) {
+	for now := range time.Tick(time.Second * 5) {
 		RequestList("https://gall.dcinside.com/board/lists?id=baseball_new8")
 		log.Println("One cycle done", now)
 	}
