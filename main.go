@@ -106,7 +106,7 @@ func RequestPost(url string) Post {
 
 func Publish(pack Pack) {
 	message, _ := json.Marshal(pack)
-	log.Println(message)
+	log.Println(string(message))
 	client.Publish("ib", message)
 }
 
