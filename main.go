@@ -40,8 +40,6 @@ func RequestList(url string) {
 		log.Fatal(err)
 	}
 
-	log.Println(res.Status)
-
 	doc.Find(".gall_list > tbody").Children().Each(func(i int, s *goquery.Selection) {
 		if dataType, exist := s.Attr("data-type"); exist && dataType != "icon_notice" {
 			href, _ := s.Find(".gall_tit > a").Attr("href")
@@ -108,6 +106,7 @@ func RequestPost(url string) Post {
 
 func Publish(pack Pack) {
 	message, _ := json.Marshal(pack)
+	log.Println(message)
 	client.Publish("ib", message)
 }
 
@@ -122,7 +121,8 @@ func main() {
 	pong, err := client.Ping().Result()
 	log.Println(pong, err)
 
-	for range time.Tick(time.Second * 10) {
+	for now := range time.Tick(time.Second * 10) {
 		RequestList("https://gall.dcinside.com/board/lists?id=baseball_new8")
+		log.Println("One cycle done", now)
 	}
 }
