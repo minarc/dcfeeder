@@ -52,14 +52,14 @@ func RequestList(url string) {
 		}
 	})
 
-	var pack Pack
+	var pack Pack = Pack{}
 	for key := range hash {
 		test := RequestPost("http://gall.dcinside.com" + key)
 		log.Println(test.title)
 		pack.messages = append(pack.messages, test)
 	}
 
-	Publish(pack)
+	go Publish(pack)
 }
 
 func RequestPost(url string) Post {
@@ -118,8 +118,12 @@ func main() {
 		Password: "WCkaZYzyhYR62p42VddCJba7Kn14vdvw",
 		DB:       0,
 	})
-	pong, err := client.Ping().Result()
-	log.Println(pong, err)
+
+	if pong, err := client.Ping().Result(); err != nil {
+		log.Fatal(err)
+	} else {
+		log.Println(pong)
+	}
 
 	for now := range time.Tick(time.Second * 10) {
 		RequestList("https://gall.dcinside.com/board/lists?id=baseball_new8")
