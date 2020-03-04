@@ -23,7 +23,7 @@ type Post struct {
 }
 
 type Pack struct {
-	Messages []Post
+	Messages []Post `json:"result"`
 }
 
 var hash = map[string]int{}
@@ -123,7 +123,7 @@ func RequestPost(url string) Post {
 }
 
 func Publish(pack Pack) {
-	message, _ := json.Marshal(pack.Messages)
+	message, _ := json.Marshal(pack)
 	// log.Println(string(message))
 	log.Println(len(pack.Messages), "Message published")
 	client.Publish("streamer", message)
