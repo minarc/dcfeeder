@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -13,19 +14,19 @@ import (
 )
 
 type Post struct {
-	number      uint32
-	title       string
-	description string
-	thumbnail   string
-	images      []string
-	updated     string
+	Number      int      `json:"number"`
+	Title       string   `json:"title"`
+	Description string   `json:"content"`
+	Thumbnail   string   `json:"thumbnail"`
+	Images      []string `json:"images"`
+	Updated     string   `json"updated"`
 }
 
 type Pack struct {
-	messages []Post
+	Messages []Post
 }
 
-var hash = map[string]bool{}
+var hash = map[string]int{}
 
 func RequestList(url string) {
 	res, err := http.Get(url)
@@ -40,21 +41,23 @@ func RequestList(url string) {
 		log.Fatal(err)
 	}
 
-	current := map[string]bool{}
+	current := map[string]int{}
 
 	doc.Find(".gall_list > tbody").Children().Each(func(i int, s *goquery.Selection) {
 		if dataType, exist := s.Attr("data-type"); exist && dataType != "icon_notice" {
 			href, _ := s.Find(".gall_tit > a").Attr("href")
-			current[href] = true
+			number, _ := strconv.Atoi(s.Find(".gall_num").Text())
+			current[href] = number
 		}
 	})
 
 	var pack Pack = Pack{}
-	for key := range current {
+	for key, number := range current {
 		if _, exist := hash[key]; !exist {
-			test := RequestPost("http://gall.dcinside.com" + key)
-			log.Println(test.title)
-			pack.messages = append(pack.messages, test)
+			post := RequestPost("http://gall.dcinside.com" + key)
+			post.Number = number
+
+			pack.Messages = append(pack.Messages, post)
 		}
 	}
 
@@ -88,13 +91,15 @@ func RequestPost(url string) Post {
 		con, _ := s.Attr("content")
 
 		if op == "og:image" {
-			message.thumbnail = con
+			message.Thumbnail = con
 		} else if op == "og:title" {
-			message.title = con
+			splited := strings.Split(con, "-")
+			title := strings.Join(splited[:1], "")
+			message.Title = strings.TrimSpace(title)
 		} else if op == "og:description" {
-			message.description = con
+			message.Description = con
 		} else if op == "og:updated_time" {
-			message.updated = con
+			message.Updated = con
 		}
 	})
 
@@ -104,15 +109,16 @@ func RequestPost(url string) Post {
 		url = re.ReplaceAllString(url, "images")
 		url = strings.Replace(url, "co.kr", "com", 1)
 
-		message.images = append(message.images, url)
+		message.Images = append(message.Images, url)
 	})
 
 	return message
 }
 
 func Publish(pack Pack) {
-	message, _ := json.Marshal(pack.messages)
-	log.Println(string(message))
+	message, _ := json.Marshal(pack.Messages)
+	// log.Println(string(message))
+	log.Println(len(pack.Messages), "Message published")
 	client.Publish("ib", message)
 }
 
@@ -131,7 +137,7 @@ func main() {
 		log.Println(pong)
 	}
 
-	for now := range time.Tick(time.Second * 5) {
+	for now := range time.Tick(time.Second * 3) {
 		RequestList("https://gall.dcinside.com/board/lists?id=stream")
 		log.Println("One cycle done", now)
 	}
