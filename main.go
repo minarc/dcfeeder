@@ -40,30 +40,36 @@ func RequestList(url string) {
 		log.Fatal(err)
 	}
 
+	current := map[string]bool{}
+
 	doc.Find(".gall_list > tbody").Children().Each(func(i int, s *goquery.Selection) {
 		if dataType, exist := s.Attr("data-type"); exist && dataType != "icon_notice" {
 			href, _ := s.Find(".gall_tit > a").Attr("href")
-
-			if _, exist := hash[href]; exist {
-				delete(hash, href)
-			} else {
-				hash[href] = true
-			}
+			current[href] = true
 		}
 	})
 
 	var pack Pack = Pack{}
-	for key := range hash {
-		test := RequestPost("http://gall.dcinside.com" + key)
-		log.Println(test.title)
-		pack.messages = append(pack.messages, test)
+	for key := range current {
+		if _, exist := hash[key]; !exist {
+			test := RequestPost("http://gall.dcinside.com" + key)
+			log.Println(test.title)
+			pack.messages = append(pack.messages, test)
+		}
 	}
+
+	hash = current
 
 	go Publish(pack)
 }
 
 func RequestPost(url string) Post {
-	res, err := http.Get(url)
+	req, err := http.NewRequest("GET", url, nil)
+	req.Header.Set("User-Agent", "Googlebot")
+
+	httpClient := &http.Client{}
+	res, err := httpClient.Do(req)
+
 	if err != nil {
 		log.Println(err)
 	}
@@ -126,7 +132,7 @@ func main() {
 	}
 
 	for now := range time.Tick(time.Second * 5) {
-		RequestList("https://gall.dcinside.com/board/lists?id=baseball_new8")
+		RequestList("https://gall.dcinside.com/board/lists?id=stream")
 		log.Println("One cycle done", now)
 	}
 }
