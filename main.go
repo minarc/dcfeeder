@@ -62,7 +62,6 @@ func RequestList(url string) {
 		if _, exist := hash[key]; !exist {
 			post := RequestPost("http://gall.dcinside.com" + key)
 			post.Number = number
-
 			pack.Messages = append(pack.Messages, post)
 		}
 	}
