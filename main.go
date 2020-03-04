@@ -122,10 +122,12 @@ func RequestPost(url string) Post {
 }
 
 func Publish(pack Pack) {
-	message, _ := json.Marshal(pack.Messages)
-	// log.Println(string(message))
-	log.Println(len(pack.Messages), "Message published")
-	client.Publish("streamer", message)
+	if len(pack.Messages) > 0 {
+		message, _ := json.Marshal(pack.Messages)
+		// log.Println(string(message))
+		log.Println(len(pack.Messages), "Message published")
+		client.Publish("streamer", message)
+	}
 }
 
 var client *redis.Client
