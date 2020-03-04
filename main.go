@@ -30,15 +30,21 @@ var hash = map[string]int{}
 
 func RequestList(url string) {
 	res, err := http.Get(url)
+
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
+		return
 	}
+
 	if res.StatusCode != 200 {
-		log.Fatal(res.Status)
+		log.Println(res.Status)
+		return
 	}
+
 	doc, err := goquery.NewDocumentFromResponse(res)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
+		return
 	}
 
 	current := map[string]int{}
@@ -119,7 +125,7 @@ func Publish(pack Pack) {
 	message, _ := json.Marshal(pack.Messages)
 	// log.Println(string(message))
 	log.Println(len(pack.Messages), "Message published")
-	client.Publish("ib", message)
+	client.Publish("streamer", message)
 }
 
 var client *redis.Client
