@@ -68,7 +68,9 @@ func RequestList(url string) {
 
 	hash = current
 
-	go Publish(pack)
+	if len(pack.Messages) > 0 {
+		go Publish(pack)
+	}
 }
 
 func RequestPost(url string) Post {
@@ -121,12 +123,10 @@ func RequestPost(url string) Post {
 }
 
 func Publish(pack Pack) {
-	if len(pack.Messages) > 0 {
-		message, _ := json.Marshal(pack.Messages)
-		// log.Println(string(message))
-		log.Println(len(pack.Messages), "Message published")
-		client.Publish("streamer", message)
-	}
+	message, _ := json.Marshal(pack.Messages)
+	// log.Println(string(message))
+	log.Println(len(pack.Messages), "Message published")
+	client.Publish("streamer", message)
 }
 
 var client *redis.Client
