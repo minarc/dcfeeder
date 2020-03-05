@@ -61,9 +61,9 @@ func RequestList(url string, hash *map[string]int, channel string) {
 	var pack Pack = Pack{}
 	for key, number := range current {
 		if _, exist := (*hash)[key]; !exist {
-			post := RequestPost("http://gall.dcinside.com" + key)
+			post, _ := RequestPost("http://gall.dcinside.com" + key)
 			post.Number = number
-			pack.Messages = append(pack.Messages, post)
+			pack.Messages = append(pack.Messages, *post)
 		}
 	}
 
@@ -74,7 +74,7 @@ func RequestList(url string, hash *map[string]int, channel string) {
 	}
 }
 
-func RequestPost(url string) Post {
+func RequestPost(url string) (*Post, error) {
 	req, err := http.NewRequest("GET", url, nil)
 	req.Header.Set("User-Agent", "Googlebot")
 
@@ -83,14 +83,17 @@ func RequestPost(url string) Post {
 
 	if err != nil {
 		log.Println(err)
+		return nil, err
 	}
 	if res.StatusCode != 200 {
 		log.Println(res.StatusCode, res.Status)
+		return nil, err
 	}
 
 	doc, err := goquery.NewDocumentFromResponse(res)
 	if err != nil {
 		log.Println(err)
+		return nil, err
 	}
 
 	var message Post
@@ -123,7 +126,7 @@ func RequestPost(url string) Post {
 		message.Images = append(message.Images, url)
 	})
 
-	return message
+	return &message, nil
 }
 
 func Publish(pack Pack, channel string) {
