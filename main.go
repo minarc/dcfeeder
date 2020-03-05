@@ -88,9 +88,10 @@ func RequestPost(url string) (*Post, error) {
 		log.Println(err)
 		return nil, err
 	}
+
 	if res.StatusCode != 200 {
 		log.Println(res.StatusCode, res.Status)
-		return nil, err
+		return nil, http.ErrAbortHandler
 	}
 
 	doc, err := goquery.NewDocumentFromResponse(res)
