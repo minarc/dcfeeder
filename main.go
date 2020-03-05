@@ -129,6 +129,7 @@ func RequestPost(url string) Post {
 func Publish(pack Pack, channel string) {
 	message, _ := json.Marshal(pack)
 	client.Publish(channel, message)
+	client.Set(channel, message, 0)
 	log.Println(len(pack.Messages), "Message published", channel)
 }
 
