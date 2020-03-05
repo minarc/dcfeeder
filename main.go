@@ -149,8 +149,8 @@ func main() {
 	}
 
 	for now := range time.Tick(time.Second * 3) {
-		RequestList("https://gall.dcinside.com/board/lists?id=stream", &hash, "streamer")
-		RequestList("https://gall.dcinside.com/board/lists?id=baseball_new8", &baseball, "baseball")
+		go RequestList("https://gall.dcinside.com/board/lists?id=stream", &hash, "streamer")
+		go RequestList("https://gall.dcinside.com/board/lists?id=baseball_new8", &baseball, "baseball")
 		log.Println("One cycle done", now)
 	}
 }
