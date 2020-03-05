@@ -27,8 +27,9 @@ type Pack struct {
 }
 
 var hash = map[string]int{}
+var baseball = map[string]int{}
 
-func RequestList(url string) {
+func RequestList(url string, hash *map[string]int, channel string) {
 	res, err := http.Get(url)
 
 	if err != nil {
@@ -59,17 +60,17 @@ func RequestList(url string) {
 
 	var pack Pack = Pack{}
 	for key, number := range current {
-		if _, exist := hash[key]; !exist {
+		if _, exist := (*hash)[key]; !exist {
 			post := RequestPost("http://gall.dcinside.com" + key)
 			post.Number = number
 			pack.Messages = append(pack.Messages, post)
 		}
 	}
 
-	hash = current
+	*hash = current
 
 	if len(pack.Messages) > 0 {
-		go Publish(pack)
+		go Publish(pack, channel)
 	}
 }
 
@@ -104,6 +105,9 @@ func RequestPost(url string) Post {
 			title := strings.Join(splited[:1], "")
 			message.Title = strings.TrimSpace(title)
 		} else if op == "og:description" {
+			if strings.HasPrefix(con, "국내 최대") {
+				con = ""
+			}
 			message.Description = con
 		} else if op == "og:updated_time" {
 			message.Updated = con
@@ -122,11 +126,10 @@ func RequestPost(url string) Post {
 	return message
 }
 
-func Publish(pack Pack) {
+func Publish(pack Pack, channel string) {
 	message, _ := json.Marshal(pack)
-	// log.Println(string(message))
+	client.Publish(channel, message)
 	log.Println(len(pack.Messages), "Message published")
-	client.Publish("streamer", message)
 }
 
 var client *redis.Client
@@ -145,7 +148,8 @@ func main() {
 	}
 
 	for now := range time.Tick(time.Second * 3) {
-		RequestList("https://gall.dcinside.com/board/lists?id=stream")
+		RequestList("https://gall.dcinside.com/board/lists?id=stream", &hash, "streamer")
+		RequestList("https://gall.dcinside.com/board/lists?id=baseball_new8", &baseball, "baseball")
 		log.Println("One cycle done", now)
 	}
 }
