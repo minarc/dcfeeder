@@ -61,9 +61,12 @@ func RequestList(url string, hash *map[string]int, channel string) {
 	var pack Pack = Pack{}
 	for key, number := range current {
 		if _, exist := (*hash)[key]; !exist {
-			post, _ := RequestPost("http://gall.dcinside.com" + key)
-			post.Number = number
-			pack.Messages = append(pack.Messages, *post)
+			if post, err := RequestPost("http://gall.dcinside.com" + key); err != nil {
+				continue
+			} else {
+				post.Number = number
+				pack.Messages = append(pack.Messages, *post)
+			}
 		}
 	}
 
