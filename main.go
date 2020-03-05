@@ -129,7 +129,7 @@ func RequestPost(url string) Post {
 func Publish(pack Pack, channel string) {
 	message, _ := json.Marshal(pack)
 	client.Publish(channel, message)
-	log.Println(len(pack.Messages), "Message published")
+	log.Println(len(pack.Messages), "Message published", channel)
 }
 
 var client *redis.Client
