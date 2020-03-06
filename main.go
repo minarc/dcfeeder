@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -58,26 +59,33 @@ func RequestList(url string, hash *map[string]int, channel string) {
 		}
 	})
 
-	var pack Pack = Pack{}
+	pack := Pack{}
+
+	ch := make(chan Post)
+	log.Println(len(current))
+
 	for key, number := range current {
 		if _, exist := (*hash)[key]; !exist {
-			if post, err := RequestPost("http://gall.dcinside.com" + key); err != nil {
-				continue
-			} else {
-				post.Number = number
-				pack.Messages = append(pack.Messages, *post)
-			}
+			go RequestPost("http://gall.dcinside.com"+key, ch, number)
+		}
+	}
+
+	for post := range ch {
+		log.Println(post.Number)
+		pack.Messages = append(pack.Messages, post)
+		if len(pack.Messages) == len(current) {
+			close(ch)
 		}
 	}
 
 	*hash = current
 
 	if len(pack.Messages) > 0 {
-		go Publish(pack, channel)
+		// go Publish(pack, channel)
 	}
 }
 
-func RequestPost(url string) (*Post, error) {
+func RequestPost(url string, ch chan Post, number int) {
 	req, err := http.NewRequest("GET", url, nil)
 	req.Header.Set("User-Agent", "Googlebot")
 
@@ -86,38 +94,37 @@ func RequestPost(url string) (*Post, error) {
 
 	if err != nil {
 		log.Println(err)
-		return nil, err
 	}
 
 	if res.StatusCode != 200 {
 		log.Println(res.StatusCode, res.Status)
-		return nil, http.ErrAbortHandler
 	}
 
 	doc, err := goquery.NewDocumentFromResponse(res)
 	if err != nil {
 		log.Println(err)
-		return nil, err
 	}
 
-	var message Post
+	post := new(Post)
+	post.Number = number
+
 	doc.Find("meta").Each(func(i int, s *goquery.Selection) {
 		op, _ := s.Attr("property")
 		con, _ := s.Attr("content")
 
 		if op == "og:image" {
-			message.Thumbnail = con
+			post.Thumbnail = strings.Replace(con, "write", "images", 1)
 		} else if op == "og:title" {
 			splited := strings.Split(con, "-")
 			title := strings.Join(splited[:1], "")
-			message.Title = strings.TrimSpace(title)
+			post.Title = strings.TrimSpace(title)
 		} else if op == "og:description" {
 			if strings.HasPrefix(con, "국내 최대") {
 				con = ""
 			}
-			message.Description = con
+			post.Description = con
 		} else if op == "og:updated_time" {
-			message.Updated = con
+			post.Updated = con
 		}
 	})
 
@@ -127,10 +134,10 @@ func RequestPost(url string) (*Post, error) {
 		url = re.ReplaceAllString(url, "images")
 		url = strings.Replace(url, "co.kr", "com", 1)
 
-		message.Images = append(message.Images, url)
+		post.Images = append(post.Images, url)
 	})
 
-	return &message, nil
+	ch <- *post
 }
 
 func Publish(pack Pack, channel string) {
@@ -143,6 +150,8 @@ func Publish(pack Pack, channel string) {
 var client *redis.Client
 
 func main() {
+	runtime.GOMAXPROCS(1)
+
 	client = redis.NewClient(&redis.Options{
 		Addr:     "redis-10317.c16.us-east-1-3.ec2.cloud.redislabs.com:10317",
 		Password: "WCkaZYzyhYR62p42VddCJba7Kn14vdvw",
@@ -156,7 +165,7 @@ func main() {
 	}
 
 	for now := range time.Tick(time.Second * 3) {
-		RequestList("https://gall.dcinside.com/board/lists?id=stream", &hash, "streamer")
+		// RequestList("https://gall.dcinside.com/board/lists?id=stream", &hash, "streamer")
 		RequestList("https://gall.dcinside.com/board/lists?id=baseball_new8", &baseball, "baseball")
 		log.Println("One cycle done", now)
 	}
