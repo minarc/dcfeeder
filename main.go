@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -139,13 +140,13 @@ func Publish(pack Pack, channel string) {
 	// client.Publish(channel, message)
 	// client.Set(channel, message, 0)
 	log.Println(len(pack.Messages), "Message published", channel)
-	pack.Messages = nil
+	pack.Messages = pack.Messages[:0]
 }
 
 var client *redis.Client
 
 func main() {
-	// runtime.GOMAXPROCS(1)
+	runtime.GOMAXPROCS(1)
 
 	client = redis.NewClient(&redis.Options{
 		Addr:     "redis-10317.c16.us-east-1-3.ec2.cloud.redislabs.com:10317",
