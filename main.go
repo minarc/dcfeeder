@@ -67,6 +67,7 @@ func RequestList(url string, hash *map[string]int, channel string) {
 	for key, number := range current {
 		if _, exist := (*hash)[key]; !exist {
 			go RequestPost("http://gall.dcinside.com"+key, number, &wg)
+			time.Sleep(time.Millisecond * 500)
 		}
 	}
 
@@ -160,7 +161,7 @@ func main() {
 		log.Println(pong)
 	}
 
-	for now := range time.Tick(time.Second * 3) {
+	for now := range time.Tick(time.Second * 5) {
 		// RequestList("https://gall.dcinside.com/board/lists?id=stream", &hash, "streamer")
 		RequestList("https://gall.dcinside.com/board/lists?id=baseball_new8", &baseball, "baseball")
 		log.Println("One cycle done", now)
