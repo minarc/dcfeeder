@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 	"regexp"
@@ -29,7 +30,7 @@ type Pack struct {
 
 var hash = map[string]int{}
 var baseball = map[string]int{}
-var pack Pack
+var pack *Pack
 
 func RequestList(url string, hash *map[string]int, channel string) {
 	res, err := http.Get(url)
@@ -51,7 +52,6 @@ func RequestList(url string, hash *map[string]int, channel string) {
 	}
 
 	current := map[string]int{}
-
 	doc.Find(".gall_list > tbody").Children().Each(func(i int, s *goquery.Selection) {
 		if dataType, exist := s.Attr("data-type"); exist && dataType != "icon_notice" {
 			href, _ := s.Find(".gall_tit > a").Attr("href")
@@ -61,13 +61,13 @@ func RequestList(url string, hash *map[string]int, channel string) {
 	})
 
 	var wg sync.WaitGroup
-	wg.Add(len(current))
 
-	log.Println("new content :: ", len(current))
+	pack = new(Pack)
 	for key, number := range current {
 		if _, exist := (*hash)[key]; !exist {
+			wg.Add(1)
 			go RequestPost("http://gall.dcinside.com"+key, number, &wg)
-			time.Sleep(time.Millisecond * 500)
+			time.Sleep(time.Millisecond * 300)
 		}
 	}
 
@@ -81,6 +81,7 @@ func RequestList(url string, hash *map[string]int, channel string) {
 
 func RequestPost(url string, number int, wg *sync.WaitGroup) {
 	defer wg.Done()
+	log.Println(number)
 
 	req, err := http.NewRequest("GET", url, nil)
 	req.Header.Set("User-Agent", "Googlebot")
@@ -90,15 +91,18 @@ func RequestPost(url string, number int, wg *sync.WaitGroup) {
 
 	if err != nil {
 		log.Println(err)
+		return
 	}
 
 	if res.StatusCode != 200 {
 		log.Println(res.StatusCode, res.Status)
+		return
 	}
 
 	doc, err := goquery.NewDocumentFromResponse(res)
 	if err != nil {
 		log.Println(err)
+		return
 	}
 
 	post := new(Post)
@@ -136,12 +140,11 @@ func RequestPost(url string, number int, wg *sync.WaitGroup) {
 	pack.Messages = append(pack.Messages, *post)
 }
 
-func Publish(pack Pack, channel string) {
-	// message, _ := json.Marshal(pack)
-	// client.Publish(channel, message)
-	// client.Set(channel, message, 0)
+func Publish(pack *Pack, channel string) {
+	message, _ := json.Marshal(pack)
+	client.Publish(channel, message)
+	client.Set(channel, message, 0)
 	log.Println(len(pack.Messages), "Message published", channel)
-	pack.Messages = pack.Messages[:0]
 }
 
 var client *redis.Client
