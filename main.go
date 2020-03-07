@@ -1,13 +1,12 @@
 package main
 
 import (
-	"encoding/json"
 	"log"
 	"net/http"
 	"regexp"
-	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
@@ -29,6 +28,7 @@ type Pack struct {
 
 var hash = map[string]int{}
 var baseball = map[string]int{}
+var pack Pack
 
 func RequestList(url string, hash *map[string]int, channel string) {
 	res, err := http.Get(url)
@@ -59,33 +59,27 @@ func RequestList(url string, hash *map[string]int, channel string) {
 		}
 	})
 
-	pack := Pack{}
+	var wg sync.WaitGroup
+	wg.Add(len(current))
 
-	ch := make(chan Post)
-	log.Println(len(current))
-
+	log.Println("new content :: ", len(current))
 	for key, number := range current {
 		if _, exist := (*hash)[key]; !exist {
-			go RequestPost("http://gall.dcinside.com"+key, ch, number)
+			go RequestPost("http://gall.dcinside.com"+key, number, &wg)
 		}
 	}
 
-	for post := range ch {
-		log.Println(post.Number)
-		pack.Messages = append(pack.Messages, post)
-		if len(pack.Messages) == len(current) {
-			close(ch)
-		}
-	}
-
+	wg.Wait()
 	*hash = current
 
 	if len(pack.Messages) > 0 {
-		// go Publish(pack, channel)
+		go Publish(pack, channel)
 	}
 }
 
-func RequestPost(url string, ch chan Post, number int) {
+func RequestPost(url string, number int, wg *sync.WaitGroup) {
+	defer wg.Done()
+
 	req, err := http.NewRequest("GET", url, nil)
 	req.Header.Set("User-Agent", "Googlebot")
 
@@ -137,20 +131,21 @@ func RequestPost(url string, ch chan Post, number int) {
 		post.Images = append(post.Images, url)
 	})
 
-	ch <- *post
+	pack.Messages = append(pack.Messages, *post)
 }
 
 func Publish(pack Pack, channel string) {
-	message, _ := json.Marshal(pack)
-	client.Publish(channel, message)
-	client.Set(channel, message, 0)
+	// message, _ := json.Marshal(pack)
+	// client.Publish(channel, message)
+	// client.Set(channel, message, 0)
 	log.Println(len(pack.Messages), "Message published", channel)
+	pack.Messages = nil
 }
 
 var client *redis.Client
 
 func main() {
-	runtime.GOMAXPROCS(1)
+	// runtime.GOMAXPROCS(1)
 
 	client = redis.NewClient(&redis.Options{
 		Addr:     "redis-10317.c16.us-east-1-3.ec2.cloud.redislabs.com:10317",
