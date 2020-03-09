@@ -1,9 +1,9 @@
 package main
 
 import (
-	"encoding/json"
 	"log"
 	"net/http"
+	_ "net/http/pprof"
 	"regexp"
 	"runtime"
 	"strconv"
@@ -21,7 +21,7 @@ type Post struct {
 	Description string   `json:"content"`
 	Thumbnail   string   `json:"thumbnail"`
 	Images      []string `json:"images"`
-	Updated     string   `json"updated"`
+	Updated     string   `json:"updated"`
 }
 
 type Pack struct {
@@ -67,7 +67,7 @@ func RequestList(url string, hash *map[string]int, channel string) {
 		if _, exist := (*hash)[key]; !exist {
 			wg.Add(1)
 			go RequestPost("http://gall.dcinside.com"+key, number, &wg)
-			time.Sleep(time.Millisecond * 300)
+			time.Sleep(time.Millisecond * 250)
 		}
 	}
 
@@ -81,12 +81,11 @@ func RequestList(url string, hash *map[string]int, channel string) {
 
 func RequestPost(url string, number int, wg *sync.WaitGroup) {
 	defer wg.Done()
-	log.Println(number)
 
 	req, err := http.NewRequest("GET", url, nil)
 	req.Header.Set("User-Agent", "Googlebot")
 
-	httpClient := &http.Client{}
+	httpClient := &http.Client{Timeout: time.Second * 5}
 	res, err := httpClient.Do(req)
 
 	if err != nil {
@@ -109,8 +108,14 @@ func RequestPost(url string, number int, wg *sync.WaitGroup) {
 	post.Number = number
 
 	doc.Find("meta").Each(func(i int, s *goquery.Selection) {
-		op, _ := s.Attr("property")
-		con, _ := s.Attr("content")
+		op, exist := s.Attr("property")
+		if !exist {
+			return
+		}
+		con, exist := s.Attr("content")
+		if !exist {
+			return
+		}
 
 		if op == "og:image" {
 			post.Thumbnail = strings.Replace(con, "write", "images", 1)
@@ -130,7 +135,10 @@ func RequestPost(url string, number int, wg *sync.WaitGroup) {
 
 	re := regexp.MustCompile("dcimg[0-9]")
 	doc.Find(".writing_view_box").Find("img").Each(func(i int, s *goquery.Selection) {
-		url, _ := s.Attr("src")
+		url, exist := s.Attr("src")
+		if !exist {
+			return
+		}
 		url = re.ReplaceAllString(url, "images")
 		url = strings.Replace(url, "co.kr", "com", 1)
 
@@ -141,9 +149,9 @@ func RequestPost(url string, number int, wg *sync.WaitGroup) {
 }
 
 func Publish(pack *Pack, channel string) {
-	message, _ := json.Marshal(pack)
-	client.Publish(channel, message)
-	client.Set(channel, message, 0)
+	// message, _ := json.Marshal(pack)
+	// client.Publish(channel, message)
+	// client.Set(channel, message, 0)
 	log.Println(len(pack.Messages), "Message published", channel)
 }
 
@@ -151,6 +159,10 @@ var client *redis.Client
 
 func main() {
 	runtime.GOMAXPROCS(1)
+
+	go func() {
+		log.Println(http.ListenAndServe("localhost:6060", nil))
+	}()
 
 	client = redis.NewClient(&redis.Options{
 		Addr:     "redis-10317.c16.us-east-1-3.ec2.cloud.redislabs.com:10317",
