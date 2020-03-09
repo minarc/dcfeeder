@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 	_ "net/http/pprof"
@@ -149,9 +150,9 @@ func RequestPost(url string, number int, wg *sync.WaitGroup) {
 }
 
 func Publish(pack *Pack, channel string) {
-	// message, _ := json.Marshal(pack)
-	// client.Publish(channel, message)
-	// client.Set(channel, message, 0)
+	message, _ := json.Marshal(pack)
+	client.Publish(channel, message)
+	client.Set(channel, message, 0)
 	log.Println(len(pack.Messages), "Message published", channel)
 }
 
