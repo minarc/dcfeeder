@@ -2,9 +2,11 @@ package main
 
 import (
 	"encoding/json"
+	"io"
 	"log"
 	"net/http"
 	_ "net/http/pprof"
+	"os"
 	"regexp"
 	"runtime"
 	"strconv"
@@ -62,13 +64,13 @@ func RequestList(url string, hash *map[string]int, channel string) {
 	})
 
 	var wg sync.WaitGroup
-
 	pack = new(Pack)
+
 	for key, number := range current {
 		if _, exist := (*hash)[key]; !exist {
 			wg.Add(1)
 			go RequestPost("http://gall.dcinside.com"+key, number, &wg)
-			time.Sleep(time.Millisecond * 250)
+			time.Sleep(time.Millisecond * 350)
 		}
 	}
 
@@ -161,6 +163,15 @@ var client *redis.Client
 func main() {
 	runtime.GOMAXPROCS(1)
 
+	fpLog, err := os.OpenFile("logfile.txt", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		panic(err)
+	}
+	defer fpLog.Close()
+
+	multiWriter := io.MultiWriter(fpLog, os.Stdout)
+	log.SetOutput(multiWriter)
+
 	go func() {
 		log.Println(http.ListenAndServe("127.0.0.1:6060", nil))
 	}()
@@ -176,6 +187,8 @@ func main() {
 	} else {
 		log.Println(pong)
 	}
+
+	// galleries := []string{"https://gall.dcinside.com/board/lists?id=stream", "https://gall.dcinside.com/board/lists?id=baseball_new8"}
 
 	for now := range time.Tick(time.Second * 5) {
 		RequestList("https://gall.dcinside.com/board/lists?id=stream", &hash, "streamer")
