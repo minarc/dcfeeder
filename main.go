@@ -36,7 +36,11 @@ var baseball = map[string]int{}
 var pack *Pack
 
 func RequestList(url string, hash *map[string]int, channel string) {
-	res, err := http.Get(url)
+	req, err := http.NewRequest("GET", url, nil)
+	req.Header.Set("User-Agent", "Googlebot")
+
+	httpClient := &http.Client{Timeout: time.Second * 5}
+	res, err := httpClient.Do(req)
 
 	if err != nil {
 		log.Println(err)
