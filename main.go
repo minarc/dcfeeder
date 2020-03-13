@@ -70,9 +70,11 @@ func RequestList(url string, hash *map[string]int, channel string) {
 	var wg sync.WaitGroup
 	pack = new(Pack)
 
+	limit := 0
 	for key, number := range current {
-		if _, exist := (*hash)[key]; !exist {
+		if _, exist := (*hash)[key]; !exist && limit < 15 {
 			wg.Add(1)
+			limit++
 			go RequestPost("http://gall.dcinside.com"+key, number, &wg)
 			time.Sleep(time.Millisecond * 350)
 		}
