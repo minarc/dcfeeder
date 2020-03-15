@@ -38,6 +38,7 @@ var pack *Pack
 func RequestList(url string, hash *map[string]int, channel string) {
 	req, err := http.NewRequest("GET", url, nil)
 	req.Header.Set("User-Agent", "Googlebot")
+	req.Header.Set("cookie", "PHPSESSID=08cfa4e74d0c71192a0895c9c1f8ec2c; ck_lately_gall=4RD%257C6Pn%257C5CY")
 
 	httpClient := &http.Client{Timeout: time.Second * 5}
 	res, err := httpClient.Do(req)
@@ -75,8 +76,8 @@ func RequestList(url string, hash *map[string]int, channel string) {
 		if _, exist := (*hash)[key]; !exist && limit < 15 {
 			wg.Add(1)
 			limit++
-			go RequestPost("http://gall.dcinside.com"+key, number, &wg)
-			time.Sleep(time.Millisecond * 350)
+			go RequestPost("https://gall.dcinside.com"+key, number, &wg)
+			time.Sleep(time.Millisecond * 450)
 		}
 	}
 
@@ -93,6 +94,7 @@ func RequestPost(url string, number int, wg *sync.WaitGroup) {
 
 	req, err := http.NewRequest("GET", url, nil)
 	req.Header.Set("User-Agent", "Googlebot")
+	req.Header.Set("cookie", "PHPSESSID=08cfa4e74d0c71192a0895c9c1f8ec2c; ck_lately_gall=4RD%257C6Pn%257C5CY")
 
 	httpClient := &http.Client{Timeout: time.Second * 5}
 	res, err := httpClient.Do(req)
