@@ -77,7 +77,7 @@ func RequestList(url string, hash *map[string]int, channel string) {
 			wg.Add(1)
 			limit++
 			go RequestPost("https://gall.dcinside.com"+key, number, &wg)
-			time.Sleep(time.Millisecond * 450)
+			time.Sleep(time.Millisecond * 200)
 		}
 	}
 
