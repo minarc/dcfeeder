@@ -73,11 +73,11 @@ func RequestList(url string, hash *map[string]int, channel string) {
 
 	limit := 0
 	for key, number := range current {
-		if _, exist := (*hash)[key]; !exist && limit < 15 {
+		if _, exist := (*hash)[key]; !exist && limit < 10 {
 			wg.Add(1)
 			limit++
 			go RequestPost("https://gall.dcinside.com"+key, number, &wg)
-			time.Sleep(time.Millisecond * 200)
+			time.Sleep(time.Millisecond * 320)
 		}
 	}
 
