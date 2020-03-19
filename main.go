@@ -77,7 +77,7 @@ func RequestList(url string, hash *map[string]int, channel string) {
 			wg.Add(1)
 			limit++
 			go RequestPost("https://gall.dcinside.com"+key, number, &wg)
-			time.Sleep(time.Millisecond * 320)
+			time.Sleep(time.Millisecond * 250)
 		}
 	}
 
@@ -199,6 +199,7 @@ func main() {
 	// galleries := []string{"https://gall.dcinside.com/board/lists?id=stream", "https://gall.dcinside.com/board/lists?id=baseball_new8"}
 
 	for now := range time.Tick(time.Second * 5) {
+
 		RequestList("https://gall.dcinside.com/board/lists?id=stream", &hash, "streamer")
 		RequestList("https://gall.dcinside.com/board/lists?id=baseball_new8", &baseball, "baseball")
 		log.Println("One cycle done", now)
