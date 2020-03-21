@@ -98,7 +98,10 @@ func RequestPost(url string, number int, wg *sync.WaitGroup) {
 	req.Header.Set("cookie", "PHPSESSID=08cfa4e74d0c71192a0895c9c1f8ec2c; ck_lately_gall=4RD%257C6Pn%257C5CY")
 
 	httpClient := &http.Client{Timeout: time.Second * 5}
+
+	startTime := time.Now()
 	res, err := httpClient.Do(req)
+	log.Println(number, time.Since(startTime))
 
 	if err != nil {
 		log.Println(err)
@@ -163,9 +166,11 @@ func RequestPost(url string, number int, wg *sync.WaitGroup) {
 
 func Publish(pack *Pack, channel string) {
 	message, _ := json.Marshal(pack)
+
+	startTime := time.Now()
 	client.Publish(channel, message)
 	client.Set(channel, message, 0)
-	log.Println(len(pack.Messages), "Message published", channel)
+	log.Println(len(pack.Messages), "Message published", channel, time.Since(startTime))
 }
 
 var client *redis.Client
