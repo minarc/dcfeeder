@@ -25,6 +25,7 @@ type Post struct {
 	Thumbnail   string   `json:"thumbnail"`
 	Images      []string `json:"images"`
 	Updated     string   `json:"updated"`
+	Url         string   `json:"url"`
 }
 
 type Pack struct {
@@ -77,7 +78,7 @@ func RequestList(url string, hash *map[string]int, channel string) {
 			wg.Add(1)
 			limit++
 			go RequestPost("https://gall.dcinside.com"+key, number, &wg)
-			time.Sleep(time.Millisecond * 250)
+			time.Sleep(time.Millisecond * 220)
 		}
 	}
 
@@ -117,6 +118,7 @@ func RequestPost(url string, number int, wg *sync.WaitGroup) {
 
 	post := new(Post)
 	post.Number = number
+	post.Url = url
 
 	doc.Find("meta").Each(func(i int, s *goquery.Selection) {
 		op, exist := s.Attr("property")
