@@ -192,7 +192,8 @@ func main() {
 	}()
 
 	client = redis.NewClient(&redis.Options{
-		Addr:     "127.0.0.1:6379",
+		// Addr:     "redis-10317.c16.us-east-1-3.ec2.cloud.redislabs.com:10317",
+		Addr:     "34.64.196.220:6379",
 		Password: "WCkaZYzyhYR62p42VddCJba7Kn14vdvw",
 		DB:       0,
 	})
