@@ -192,8 +192,9 @@ func main() {
 	}()
 
 	client = redis.NewClient(&redis.Options{
-		Addr: "localhost:6379",
-		DB:   0,
+		Addr:     "127.0.0.1:6379",
+		Password: "WCkaZYzyhYR62p42VddCJba7Kn14vdvw",
+		DB:       0,
 	})
 
 	if pong, err := client.Ping().Result(); err != nil {
