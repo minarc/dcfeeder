@@ -192,9 +192,8 @@ func main() {
 	}()
 
 	client = redis.NewClient(&redis.Options{
-		Addr:     "redis-10317.c16.us-east-1-3.ec2.cloud.redislabs.com:10317",
-		Password: "WCkaZYzyhYR62p42VddCJba7Kn14vdvw",
-		DB:       0,
+		Addr: "localhost",
+		DB:   0,
 	})
 
 	if pong, err := client.Ping().Result(); err != nil {
