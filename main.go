@@ -217,6 +217,7 @@ func Publish(pack *Pack, channel string) {
 				m.Vision = append(m.Vision, Visioning(GetBase64FromURL(i), m.Number))
 			}
 		}
+		log.Println(m.Vision)
 	}
 
 	message, _ := json.Marshal(pack)
