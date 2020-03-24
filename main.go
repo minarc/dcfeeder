@@ -212,6 +212,7 @@ func Publish(pack *Pack, channel string) {
 
 	for _, m := range pack.Messages {
 		if len(m.Images) > 0 {
+			m.Vision = []string{}
 			for _, i := range m.Images {
 				m.Vision = append(m.Vision, Visioning(GetBase64FromURL(i), m.Number))
 			}
