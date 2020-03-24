@@ -210,15 +210,14 @@ func GetBase64FromURL(url string) string {
 
 func Publish(pack *Pack, channel string) {
 
-	for _, m := range pack.Messages {
-		if len(m.Images) > 0 {
-			m.Vision = []string{}
-			for _, i := range m.Images {
-				m.Vision = append(m.Vision, Visioning(GetBase64FromURL(i), m.Number))
+	for i := range pack.Messages {
+		if len(pack.Messages[i].Images) > 0 {
+			for _, url := range pack.Messages[i].Images {
+				pack.Messages[i].Vision = append(pack.Messages[i].Vision, Visioning(GetBase64FromURL(url), pack.Messages[i].Number))
 			}
 		}
-		log.Println(m.Vision)
 	}
+
 	message, _ := json.Marshal(pack)
 
 	startTime := time.Now()
