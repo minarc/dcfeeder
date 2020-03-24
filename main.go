@@ -3,6 +3,7 @@ package main
 import (
 	b64 "encoding/base64"
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -28,6 +29,7 @@ type Post struct {
 	Images      []string `json:"images"`
 	Updated     string   `json:"updated"`
 	Url         string   `json:"url"`
+	Vision      []string `json:"vision"`
 }
 
 type Pack struct {
@@ -80,7 +82,7 @@ func RequestList(url string, hash *map[string]int, channel string) {
 			wg.Add(1)
 			limit++
 			go RequestPost("https://gall.dcinside.com"+key, number, &wg)
-			time.Sleep(time.Millisecond * 220)
+			time.Sleep(time.Millisecond * 200)
 		}
 	}
 
@@ -101,9 +103,9 @@ func RequestPost(url string, number int, wg *sync.WaitGroup) {
 
 	httpClient := &http.Client{Timeout: time.Second * 5}
 
-	startTime := time.Now()
+	// startTime := time.Now()
 	res, err := httpClient.Do(req)
-	log.Println(number, time.Since(startTime))
+	// log.Println(number, time.Since(startTime))
 
 	if err != nil {
 		log.Println(err)
@@ -166,33 +168,32 @@ func RequestPost(url string, number int, wg *sync.WaitGroup) {
 	pack.Messages = append(pack.Messages, *post)
 }
 
-func Visioning(encoded string) {
-	payload := strings.NewReader(`
+func Visioning(encoded string, number int) string {
+	payload := strings.NewReader(fmt.Sprintf(`{
 		"instances":
 		[
 		  {
 			"image_bytes":
 			{
-			  "b64": "encoded"
+			  "b64": "%s"
 			},
-			"key": "your-chosen-image-key"
+			"key": "%d"
 		  }
 		]
-	  }`)
+	  }`, encoded, number))
 
 	req, _ := http.NewRequest("POST", "http://localhost:8501/v1/models/default:predict", payload)
 	req.Header.Add("content-type", "application/json")
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return
+		return err.Error()
 	}
 	defer res.Body.Close()
 
 	body, _ := ioutil.ReadAll(res.Body)
 
-	log.Println(res)
-	log.Println(string(body))
+	return string(body)
 }
 
 func GetBase64FromURL(url string) string {
@@ -203,19 +204,19 @@ func GetBase64FromURL(url string) string {
 	defer res.Body.Close()
 	body, _ := ioutil.ReadAll(res.Body)
 
-	log.Printf("Got base64 from url", time.Since(startTime))
+	log.Println("Got base64 from url", time.Since(startTime))
 	return b64.StdEncoding.EncodeToString(body)
 }
 
 func Publish(pack *Pack, channel string) {
 
-	// for _, m := range pack.Messages {
-	// 	if len(m.Images) > 1 {
-	// 		for _, i := range m.Images {
-	// 			Visioning(GetBase64FromURL(i))
-	// 		}
-	// 	}
-	// }
+	for _, m := range pack.Messages {
+		if len(m.Images) > 0 {
+			for _, i := range m.Images {
+				m.Vision = append(m.Vision, Visioning(GetBase64FromURL(i), m.Number))
+			}
+		}
+	}
 
 	message, _ := json.Marshal(pack)
 
@@ -257,7 +258,7 @@ func main() {
 
 	// galleries := []string{"https://gall.dcinside.com/board/lists?id=stream", "https://gall.dcinside.com/board/lists?id=baseball_new8"}
 
-	for now := range time.Tick(time.Second * 5) {
+	for now := range time.Tick(time.Second * 4) {
 
 		RequestList("https://gall.dcinside.com/board/lists?id=stream", &hash, "streamer")
 		RequestList("https://gall.dcinside.com/board/lists?id=baseball_new8", &baseball, "baseball")
