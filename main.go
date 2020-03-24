@@ -1,8 +1,10 @@
 package main
 
 import (
+	b64 "encoding/base64"
 	"encoding/json"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	_ "net/http/pprof"
@@ -164,7 +166,57 @@ func RequestPost(url string, number int, wg *sync.WaitGroup) {
 	pack.Messages = append(pack.Messages, *post)
 }
 
+func Visioning(encoded string) {
+	payload := strings.NewReader(`
+		"instances":
+		[
+		  {
+			"image_bytes":
+			{
+			  "b64": "encoded"
+			},
+			"key": "your-chosen-image-key"
+		  }
+		]
+	  }`)
+
+	req, _ := http.NewRequest("POST", "http://localhost:8501/v1/models/default:predict", payload)
+	req.Header.Add("content-type", "application/json")
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return
+	}
+	defer res.Body.Close()
+
+	body, _ := ioutil.ReadAll(res.Body)
+
+	log.Println(res)
+	log.Println(string(body))
+}
+
+func GetBase64FromURL(url string) string {
+	startTime := time.Now()
+
+	req, _ := http.NewRequest("GET", url, nil)
+	res, _ := http.DefaultClient.Do(req)
+	defer res.Body.Close()
+	body, _ := ioutil.ReadAll(res.Body)
+
+	log.Printf("Got base64 from url", time.Since(startTime))
+	return b64.StdEncoding.EncodeToString(body)
+}
+
 func Publish(pack *Pack, channel string) {
+
+	// for _, m := range pack.Messages {
+	// 	if len(m.Images) > 1 {
+	// 		for _, i := range m.Images {
+	// 			Visioning(GetBase64FromURL(i))
+	// 		}
+	// 	}
+	// }
+
 	message, _ := json.Marshal(pack)
 
 	startTime := time.Now()
