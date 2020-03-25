@@ -250,16 +250,16 @@ func GetBase64FromURL(url string) string {
 
 func Publish(pack *Pack, channel string) {
 
-	for i := range pack.Messages {
-		if len(pack.Messages[i].Images) > 0 {
-			for _, url := range pack.Messages[i].Images {
-				encoded := GetBase64FromURL(url)
-				if encoded != "" {
-					pack.Messages[i].Vision = append(pack.Messages[i].Vision, Visioning(encoded, pack.Messages[i].Number))
-				}
-			}
-		}
-	}
+	// for i := range pack.Messages {
+	// 	if len(pack.Messages[i].Images) > 0 {
+	// 		for _, url := range pack.Messages[i].Images {
+	// 			encoded := GetBase64FromURL(url)
+	// 			if encoded != "" {
+	// 				pack.Messages[i].Vision = append(pack.Messages[i].Vision, Visioning(encoded, pack.Messages[i].Number))
+	// 			}
+	// 		}
+	// 	}
+	// }
 
 	message, _ := json.Marshal(pack)
 
