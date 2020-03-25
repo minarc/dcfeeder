@@ -288,9 +288,9 @@ func main() {
 	}()
 
 	client = redis.NewClient(&redis.Options{
-		Addr:     "127.0.0.1:6379",
-		Password: "WCkaZYzyhYR62p42VddCJba7Kn14vdvw",
-		DB:       0,
+		Addr: "127.0.0.1:6379",
+		// Password: "WCkaZYzyhYR62p42VddCJba7Kn14vdvw",
+		DB: 0,
 	})
 
 	if pong, err := client.Ping().Result(); err != nil {
@@ -301,7 +301,7 @@ func main() {
 
 	// galleries := []string{"https://gall.dcinside.com/board/lists?id=stream", "https://gall.dcinside.com/board/lists?id=baseball_new8"}
 
-	for now := range time.Tick(time.Second * 4) {
+	for now := range time.Tick(time.Second * 3) {
 
 		RequestList("https://gall.dcinside.com/board/lists?id=stream", &hash, "streamer")
 		RequestList("https://gall.dcinside.com/board/lists?id=baseball_new8", &baseball, "baseball")
