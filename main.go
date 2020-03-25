@@ -90,7 +90,7 @@ func RequestList(url string, hash *map[string]int, channel string) {
 	*hash = current
 
 	if len(pack.Messages) > 0 {
-		go Publish(pack, channel)
+		Publish(pack, channel)
 	}
 }
 
