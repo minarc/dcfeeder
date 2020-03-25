@@ -226,7 +226,7 @@ func GetBase64FromURL(url string) string {
 		return err.Error()
 	}
 
-	log.Println("Got base64 from url", time.Since(startTime))
+	log.Println("Got base64 from url", res.Header, time.Since(startTime))
 
 	return b64.StdEncoding.EncodeToString(body)
 }
