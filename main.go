@@ -256,7 +256,6 @@ func Publish(pack *Pack, channel string) {
 				encoded := GetBase64FromURL(url)
 				if encoded != "" {
 					pack.Messages[i].Vision = append(pack.Messages[i].Vision, Visioning(encoded, pack.Messages[i].Number))
-					time.Sleep(time.Millisecond * 100)
 				}
 			}
 		}
