@@ -182,7 +182,11 @@ func Visioning(encoded string, number int) string {
 		]
 	  }`, encoded, number))
 
-	req, _ := http.NewRequest("POST", "http://localhost:8501/v1/models/default:predict", payload)
+	req, err := http.NewRequest("POST", "http://localhost:8501/v1/models/default:predict", payload)
+	if err != nil {
+		return err.Error()
+	}
+
 	req.Header.Add("content-type", "application/json")
 
 	res, err := http.DefaultClient.Do(req)
@@ -191,7 +195,10 @@ func Visioning(encoded string, number int) string {
 	}
 	defer res.Body.Close()
 
-	body, _ := ioutil.ReadAll(res.Body)
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return err.Error()
+	}
 
 	return string(body)
 }
