@@ -189,6 +189,8 @@ func Visioning(encoded string, number int) string {
 
 	req.Header.Add("content-type", "application/json")
 
+	startTime := time.Now()
+
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return err.Error()
@@ -199,6 +201,7 @@ func Visioning(encoded string, number int) string {
 	if err != nil {
 		return err.Error()
 	}
+	log.Println("Model predicted", string(body), time.Since(startTime))
 
 	return string(body)
 }
