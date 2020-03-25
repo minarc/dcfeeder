@@ -221,12 +221,17 @@ func GetBase64FromURL(url string) string {
 	}
 	defer res.Body.Close()
 
+	if strings.Contains(strings.Split(res.Header.Get("Content-Disposition"), ";")[1], "gif") {
+		log.Println("Got base64 but gif", time.Since(startTime))
+		return ""
+	}
+
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		return err.Error()
 	}
 
-	log.Println("Got base64 from url", res.Header, time.Since(startTime))
+	log.Println("Got base64 from url", time.Since(startTime))
 
 	return b64.StdEncoding.EncodeToString(body)
 }
