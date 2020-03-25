@@ -254,8 +254,10 @@ func Publish(pack *Pack, channel string) {
 		if len(pack.Messages[i].Images) > 0 {
 			for _, url := range pack.Messages[i].Images {
 				encoded := GetBase64FromURL(url)
-				pack.Messages[i].Vision = append(pack.Messages[i].Vision, Visioning(encoded, pack.Messages[i].Number))
-				time.Sleep(time.Millisecond * 100)
+				if encoded != "" {
+					pack.Messages[i].Vision = append(pack.Messages[i].Vision, Visioning(encoded, pack.Messages[i].Number))
+					time.Sleep(time.Millisecond * 100)
+				}
 			}
 		}
 	}
