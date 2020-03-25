@@ -208,11 +208,10 @@ func GetBase64FromURL(url string) string {
 
 	req, _ := http.NewRequest("GET", url, nil)
 	res, err := http.DefaultClient.Do(req)
-	defer res.Body.Close()
-
 	if err != nil {
 		return err.Error()
 	}
+	defer res.Body.Close()
 
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
