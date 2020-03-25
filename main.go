@@ -222,7 +222,8 @@ func GetBase64FromURL(url string) string {
 
 	res, err := httpClient.Do(req)
 	if err != nil {
-		return err.Error()
+		log.Println(err.Error())
+		return ""
 	}
 	defer res.Body.Close()
 
@@ -233,7 +234,8 @@ func GetBase64FromURL(url string) string {
 
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		return err.Error()
+		log.Println(err.Error())
+		return ""
 	}
 
 	log.Println("Got base64 from url", time.Since(startTime))
@@ -246,7 +248,8 @@ func Publish(pack *Pack, channel string) {
 	for i := range pack.Messages {
 		if len(pack.Messages[i].Images) > 0 {
 			for _, url := range pack.Messages[i].Images {
-				pack.Messages[i].Vision = append(pack.Messages[i].Vision, Visioning(GetBase64FromURL(url), pack.Messages[i].Number))
+				encoded := GetBase64FromURL(url)
+				pack.Messages[i].Vision = append(pack.Messages[i].Vision, Visioning(encoded, pack.Messages[i].Number))
 				time.Sleep(time.Millisecond * 100)
 			}
 		}
