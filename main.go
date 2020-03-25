@@ -238,6 +238,11 @@ func GetBase64FromURL(url string) string {
 		return ""
 	}
 
+	if res.StatusCode != 200 {
+		log.Println(string(body))
+		return ""
+	}
+
 	log.Println("Got base64 from url", time.Since(startTime))
 
 	return b64.StdEncoding.EncodeToString(body)
