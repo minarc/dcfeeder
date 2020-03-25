@@ -209,8 +209,13 @@ func Visioning(encoded string, number int) string {
 func GetBase64FromURL(url string) string {
 	startTime := time.Now()
 
-	req, _ := http.NewRequest("GET", url, nil)
-	res, err := http.DefaultClient.Do(req)
+	req, err := http.NewRequest("GET", url, nil)
+	req.Header.Set("User-Agent", "Googlebot")
+	req.Header.Set("cookie", "PHPSESSID=08cfa4e74d0c71192a0895c9c1f8ec2c; ck_lately_gall=4RD%257C6Pn%257C5CY")
+
+	httpClient := &http.Client{Timeout: time.Second * 1}
+
+	res, err := httpClient.Do(req)
 	if err != nil {
 		return err.Error()
 	}
