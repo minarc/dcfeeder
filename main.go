@@ -207,11 +207,20 @@ func GetBase64FromURL(url string) string {
 	startTime := time.Now()
 
 	req, _ := http.NewRequest("GET", url, nil)
-	res, _ := http.DefaultClient.Do(req)
+	res, err := http.DefaultClient.Do(req)
 	defer res.Body.Close()
-	body, _ := ioutil.ReadAll(res.Body)
+
+	if err != nil {
+		return err.Error()
+	}
+
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return err.Error()
+	}
 
 	log.Println("Got base64 from url", time.Since(startTime))
+
 	return b64.StdEncoding.EncodeToString(body)
 }
 
