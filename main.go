@@ -1,8 +1,11 @@
 package main
 
 import (
+	b64 "encoding/base64"
 	"encoding/json"
+	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	_ "net/http/pprof"
@@ -26,6 +29,7 @@ type Post struct {
 	Images      []string `json:"images"`
 	Updated     string   `json:"updated"`
 	Url         string   `json:"url"`
+	Vision      []string `json:"vision"`
 }
 
 type Pack struct {
@@ -78,7 +82,7 @@ func RequestList(url string, hash *map[string]int, channel string) {
 			wg.Add(1)
 			limit++
 			go RequestPost("https://gall.dcinside.com"+key, number, &wg)
-			time.Sleep(time.Millisecond * 220)
+			time.Sleep(time.Millisecond * 200)
 		}
 	}
 
@@ -86,7 +90,7 @@ func RequestList(url string, hash *map[string]int, channel string) {
 	*hash = current
 
 	if len(pack.Messages) > 0 {
-		go Publish(pack, channel)
+		Publish(pack, channel)
 	}
 }
 
@@ -99,9 +103,9 @@ func RequestPost(url string, number int, wg *sync.WaitGroup) {
 
 	httpClient := &http.Client{Timeout: time.Second * 5}
 
-	startTime := time.Now()
+	// startTime := time.Now()
 	res, err := httpClient.Do(req)
-	log.Println(number, time.Since(startTime))
+	// log.Println(number, time.Since(startTime))
 
 	if err != nil {
 		log.Println(err)
@@ -164,7 +168,98 @@ func RequestPost(url string, number int, wg *sync.WaitGroup) {
 	pack.Messages = append(pack.Messages, *post)
 }
 
+func Visioning(encoded string, number int) string {
+	payload := strings.NewReader(fmt.Sprintf(`{
+		"instances":
+		[
+		  {
+			"image_bytes":
+			{
+			  "b64": "%s"
+			},
+			"key": "%d"
+		  }
+		]
+	  }`, encoded, number))
+
+	req, err := http.NewRequest("POST", "http://localhost:8501/v1/models/default:predict", payload)
+	if err != nil {
+		return err.Error()
+	}
+
+	req.Header.Add("content-type", "application/json")
+
+	startTime := time.Now()
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err.Error()
+	}
+	defer res.Body.Close()
+
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return err.Error()
+	}
+
+	if res.StatusCode != 200 {
+		log.Println(encoded)
+	}
+
+	log.Println("Model predicted", string(body), time.Since(startTime))
+
+	return string(body)
+}
+
+func GetBase64FromURL(url string) string {
+	startTime := time.Now()
+
+	req, err := http.NewRequest("GET", url, nil)
+	req.Header.Set("User-Agent", "Googlebot")
+	req.Header.Set("cookie", "PHPSESSID=08cfa4e74d0c71192a0895c9c1f8ec2c; ck_lately_gall=4RD%257C6Pn%257C5CY")
+
+	httpClient := &http.Client{Timeout: time.Second * 1}
+
+	res, err := httpClient.Do(req)
+	if err != nil {
+		log.Println(err.Error())
+		return ""
+	}
+	defer res.Body.Close()
+
+	if strings.Contains(strings.Split(res.Header.Get("Content-Disposition"), ";")[1], "gif") {
+		log.Println("Got base64 but gif", time.Since(startTime))
+		return ""
+	}
+
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		log.Println(err.Error())
+		return ""
+	}
+
+	if res.StatusCode != 200 {
+		log.Println(string(body))
+		return ""
+	}
+
+	log.Println("Got base64 from url", time.Since(startTime))
+
+	return b64.StdEncoding.EncodeToString(body)
+}
+
 func Publish(pack *Pack, channel string) {
+
+	for i := range pack.Messages {
+		if len(pack.Messages[i].Images) > 0 {
+			for _, url := range pack.Messages[i].Images {
+				encoded := GetBase64FromURL(url)
+				if encoded != "" {
+					pack.Messages[i].Vision = append(pack.Messages[i].Vision, Visioning(encoded, pack.Messages[i].Number))
+				}
+			}
+		}
+	}
+
 	message, _ := json.Marshal(pack)
 
 	startTime := time.Now()
@@ -187,13 +282,8 @@ func main() {
 	multiWriter := io.MultiWriter(fpLog, os.Stdout)
 	log.SetOutput(multiWriter)
 
-	go func() {
-		log.Println(http.ListenAndServe("127.0.0.1:6060", nil))
-	}()
-
 	client = redis.NewClient(&redis.Options{
-		// Addr:     "redis-10317.c16.us-east-1-3.ec2.cloud.redislabs.com:10317",
-		Addr:     "34.64.196.220:6379",
+		Addr:     "127.0.0.1:6379",
 		Password: "WCkaZYzyhYR62p42VddCJba7Kn14vdvw",
 		DB:       0,
 	})
@@ -206,7 +296,7 @@ func main() {
 
 	// galleries := []string{"https://gall.dcinside.com/board/lists?id=stream", "https://gall.dcinside.com/board/lists?id=baseball_new8"}
 
-	for now := range time.Tick(time.Second * 5) {
+	for now := range time.Tick(time.Second * 3) {
 
 		RequestList("https://gall.dcinside.com/board/lists?id=stream", &hash, "streamer")
 		RequestList("https://gall.dcinside.com/board/lists?id=baseball_new8", &baseball, "baseball")
