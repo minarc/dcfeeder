@@ -45,7 +45,7 @@ func RequestList(url string, hash *map[string]int, channel string) {
 	req.Header.Set("User-Agent", "Googlebot")
 	req.Header.Set("cookie", "PHPSESSID=08cfa4e74d0c71192a0895c9c1f8ec2c; ck_lately_gall=4RD%257C6Pn%257C5CY")
 
-	httpClient := &http.Client{Timeout: time.Second * 5}
+	httpClient := &http.Client{Timeout: time.Second * 1}
 	res, err := httpClient.Do(req)
 
 	if err != nil {
@@ -82,7 +82,7 @@ func RequestList(url string, hash *map[string]int, channel string) {
 			wg.Add(1)
 			limit++
 			go RequestPost("https://gall.dcinside.com"+key, number, &wg)
-			time.Sleep(time.Millisecond * 200)
+			time.Sleep(time.Millisecond * 250)
 		}
 	}
 
@@ -101,7 +101,7 @@ func RequestPost(url string, number int, wg *sync.WaitGroup) {
 	req.Header.Set("User-Agent", "Googlebot")
 	req.Header.Set("cookie", "PHPSESSID=08cfa4e74d0c71192a0895c9c1f8ec2c; ck_lately_gall=4RD%257C6Pn%257C5CY")
 
-	httpClient := &http.Client{Timeout: time.Second * 5}
+	httpClient := &http.Client{Timeout: time.Second * 1}
 
 	// startTime := time.Now()
 	res, err := httpClient.Do(req)
@@ -213,7 +213,7 @@ func GetBase64FromURL(url string) string {
 	req.Header.Set("User-Agent", "Googlebot")
 	req.Header.Set("cookie", "PHPSESSID=08cfa4e74d0c71192a0895c9c1f8ec2c; ck_lately_gall=4RD%257C6Pn%257C5CY")
 
-	httpClient := &http.Client{Timeout: time.Second * 1}
+	httpClient := &http.Client{Timeout: time.Millisecond * 500}
 
 	res, err := httpClient.Do(req)
 	if err != nil {
