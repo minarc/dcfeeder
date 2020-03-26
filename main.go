@@ -190,7 +190,6 @@ func Visioning(encoded string, number int) string {
 	req.Header.Add("content-type", "application/json")
 
 	startTime := time.Now()
-
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return err.Error()
@@ -218,7 +217,7 @@ func GetBase64FromURL(url string) string {
 	req.Header.Set("User-Agent", "Googlebot")
 	req.Header.Set("cookie", "PHPSESSID=08cfa4e74d0c71192a0895c9c1f8ec2c; ck_lately_gall=4RD%257C6Pn%257C5CY")
 
-	httpClient := &http.Client{Timeout: time.Millisecond * 250}
+	httpClient := &http.Client{Timeout: time.Second * 1}
 
 	res, err := httpClient.Do(req)
 	if err != nil {
@@ -250,16 +249,16 @@ func GetBase64FromURL(url string) string {
 
 func Publish(pack *Pack, channel string) {
 
-	// for i := range pack.Messages {
-	// 	if len(pack.Messages[i].Images) > 0 {
-	// 		for _, url := range pack.Messages[i].Images {
-	// 			encoded := GetBase64FromURL(url)
-	// 			if encoded != "" {
-	// 				pack.Messages[i].Vision = append(pack.Messages[i].Vision, Visioning(encoded, pack.Messages[i].Number))
-	// 			}
-	// 		}
-	// 	}
-	// }
+	for i := range pack.Messages {
+		if len(pack.Messages[i].Images) > 0 {
+			for _, url := range pack.Messages[i].Images {
+				encoded := GetBase64FromURL(url)
+				if encoded != "" {
+					pack.Messages[i].Vision = append(pack.Messages[i].Vision, Visioning(encoded, pack.Messages[i].Number))
+				}
+			}
+		}
+	}
 
 	message, _ := json.Marshal(pack)
 
@@ -283,12 +282,8 @@ func main() {
 	multiWriter := io.MultiWriter(fpLog, os.Stdout)
 	log.SetOutput(multiWriter)
 
-	go func() {
-		log.Println(http.ListenAndServe("127.0.0.1:6060", nil))
-	}()
-
 	client = redis.NewClient(&redis.Options{
-		Addr:     "127.0.0.1:6379",
+		Addr:     "34.64.196.220:6379",
 		Password: "WCkaZYzyhYR62p42VddCJba7Kn14vdvw",
 		DB:       0,
 	})
