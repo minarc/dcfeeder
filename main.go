@@ -226,7 +226,8 @@ func GetBase64FromURL(url string) string {
 	}
 	defer res.Body.Close()
 
-	if strings.Contains(strings.Split(res.Header.Get("Content-Disposition"), ";")[1], "gif") {
+	disposition := res.Header.Get("Content-Disposition")
+	if disposition != "" && strings.Contains(strings.Split(disposition, ";")[1], "gif") {
 		log.Println("Got base64 but gif", time.Since(startTime))
 		return ""
 	}
