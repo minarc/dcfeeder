@@ -22,14 +22,14 @@ import (
 )
 
 type Post struct {
-	Number      int      `json:"number"`
-	Title       string   `json:"title"`
-	Description string   `json:"content"`
-	Thumbnail   string   `json:"thumbnail"`
-	Images      []string `json:"images"`
-	Updated     string   `json:"updated"`
-	Url         string   `json:"url"`
-	Vision      []string `json:"vision"`
+	Number      int                      `json:"number"`
+	Title       string                   `json:"title"`
+	Description string                   `json:"content"`
+	Thumbnail   string                   `json:"thumbnail"`
+	Images      []string                 `json:"images"`
+	Updated     string                   `json:"updated"`
+	Url         string                   `json:"url"`
+	Vision      []map[string]interface{} `json:"vision"`
 }
 
 type Pack struct {
@@ -168,7 +168,7 @@ func RequestPost(url string, number int, wg *sync.WaitGroup) {
 	pack.Messages = append(pack.Messages, *post)
 }
 
-func Visioning(encoded string, number int) string {
+func Visioning(encoded string, number int) []byte {
 	payload := strings.NewReader(fmt.Sprintf(`{
 		"instances":
 		[
@@ -184,7 +184,7 @@ func Visioning(encoded string, number int) string {
 
 	req, err := http.NewRequest("POST", "http://localhost:8501/v1/models/default:predict", payload)
 	if err != nil {
-		return err.Error()
+		return []byte(err.Error())
 	}
 
 	req.Header.Add("content-type", "application/json")
@@ -192,13 +192,13 @@ func Visioning(encoded string, number int) string {
 	startTime := time.Now()
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return err.Error()
+		return []byte(err.Error())
 	}
 	defer res.Body.Close()
 
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		return err.Error()
+		return []byte(err.Error())
 	}
 
 	if res.StatusCode != 200 {
@@ -207,7 +207,7 @@ func Visioning(encoded string, number int) string {
 
 	log.Println("Model predicted", string(body), time.Since(startTime))
 
-	return string(body)
+	return body
 }
 
 func GetBase64FromURL(url string) string {
@@ -226,6 +226,11 @@ func GetBase64FromURL(url string) string {
 	}
 	defer res.Body.Close()
 
+	if strings.Contains(strings.Split(res.Header.Get("Content-Disposition"), ";")[1], "gif") {
+		log.Println("Got base64 but gif", time.Since(startTime))
+		return ""
+	}
+
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		log.Println(err.Error())
@@ -233,7 +238,6 @@ func GetBase64FromURL(url string) string {
 	}
 
 	if res.StatusCode != 200 {
-		log.Println(string(body))
 		return ""
 	}
 
@@ -249,7 +253,11 @@ func Publish(pack *Pack, channel string) {
 			for _, url := range pack.Messages[i].Images {
 				encoded := GetBase64FromURL(url)
 				if encoded != "" {
-					pack.Messages[i].Vision = append(pack.Messages[i].Vision, Visioning(encoded, pack.Messages[i].Number))
+					var result map[string]interface{}
+					if err := json.Unmarshal(Visioning(encoded, pack.Messages[i].Number), &result); err != nil {
+						panic(err)
+					}
+					pack.Messages[i].Vision = append(pack.Messages[i].Vision, result)
 				}
 			}
 		}
@@ -278,9 +286,9 @@ func main() {
 	log.SetOutput(multiWriter)
 
 	client = redis.NewClient(&redis.Options{
-		Addr:     "127.0.0.1:6379",
-		Password: "WCkaZYzyhYR62p42VddCJba7Kn14vdvw",
-		DB:       0,
+		Addr: "127.0.0.1:6379",
+		// Password: "WCkaZYzyhYR62p42VddCJba7Kn14vdvw",
+		DB: 0,
 	})
 
 	if pong, err := client.Ping().Result(); err != nil {
