@@ -207,13 +207,11 @@ func Visioning(encoded string, number int) []byte {
 }
 
 func GetBase64FromURL(url string) string {
-	startTime := time.Now()
-
 	req, err := http.NewRequest("GET", url, nil)
 	req.Header.Set("User-Agent", "Googlebot")
 	req.Header.Set("cookie", "PHPSESSID=08cfa4e74d0c71192a0895c9c1f8ec2c; ck_lately_gall=4RD%257C6Pn%257C5CY")
 
-	httpClient := &http.Client{Timeout: time.Millisecond * 500}
+	httpClient := &http.Client{Timeout: time.Millisecond * 250}
 
 	res, err := httpClient.Do(req)
 	if err != nil {
@@ -231,8 +229,6 @@ func GetBase64FromURL(url string) string {
 	if res.StatusCode != 200 {
 		return ""
 	}
-
-	log.Println("Got base64 from url", time.Since(startTime))
 
 	return b64.StdEncoding.EncodeToString(body)
 }
@@ -290,7 +286,7 @@ func main() {
 
 	// galleries := []string{"https://gall.dcinside.com/board/lists?id=stream", "https://gall.dcinside.com/board/lists?id=baseball_new8"}
 
-	for now := range time.Tick(time.Second * 3) {
+	for now := range time.Tick(time.Second * 4) {
 
 		RequestList("https://gall.dcinside.com/board/lists?id=stream", &hash, "streamer")
 		RequestList("https://gall.dcinside.com/board/lists?id=baseball_new8", &baseball, "baseball")
