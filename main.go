@@ -201,10 +201,6 @@ func Visioning(encoded string, number int) []byte {
 		return []byte(err.Error())
 	}
 
-	if res.StatusCode != 200 {
-		log.Println(encoded)
-	}
-
 	log.Println("Model predicted", string(body), time.Since(startTime))
 
 	return body
