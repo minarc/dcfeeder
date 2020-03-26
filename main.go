@@ -184,7 +184,7 @@ func Visioning(encoded string, number int) []byte {
 
 	req, err := http.NewRequest("POST", "http://localhost:8501/v1/models/default:predict", payload)
 	if err != nil {
-		return []byte(err.Error())
+		return []byte("err")
 	}
 
 	req.Header.Add("content-type", "application/json")
@@ -192,16 +192,16 @@ func Visioning(encoded string, number int) []byte {
 	startTime := time.Now()
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return []byte(err.Error())
+		return []byte("err")
 	}
 	defer res.Body.Close()
 
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		return []byte(err.Error())
+		return []byte("err")
 	}
 
-	log.Println("Model predicted", string(body), time.Since(startTime))
+	log.Println("Model predicted", time.Since(startTime))
 
 	return body
 }
@@ -221,11 +221,6 @@ func GetBase64FromURL(url string) string {
 		return ""
 	}
 	defer res.Body.Close()
-
-	if strings.Contains(strings.Split(res.Header.Get("Content-Disposition"), ";")[1], "gif") {
-		log.Println("Got base64 but gif", time.Since(startTime))
-		return ""
-	}
 
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
