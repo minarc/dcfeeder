@@ -257,7 +257,7 @@ func Publish(pack *Pack, channel string) {
 
 	message, _ := json.Marshal(pack)
 
-	startTime := time.Now()
+	startTime = time.Now()
 	client.Publish(channel, message)
 	client.Set(channel, message, 0)
 	log.Println(len(pack.Messages), "Message published", channel, time.Since(startTime))
