@@ -43,6 +43,10 @@ var pack *Pack
 func RequestList(url string, hash *map[string]int, channel string) {
 	req, err := http.NewRequest("GET", url, nil)
 	req.Header.Set("User-Agent", "Googlebot")
+	req.Header.Set("Connection", "keep-alive")
+	req.Header.Set("DNT", "1")
+	req.Header.Set("Host", "gall.dcinside.com")
+	req.Header.Set("Referer", "https://gall.dcinside.com/board/lists?id=baseball_new8")
 	req.Header.Set("cookie", "PHPSESSID=08cfa4e74d0c71192a0895c9c1f8ec2c; ck_lately_gall=4RD%257C6Pn%257C5CY")
 
 	httpClient := &http.Client{Timeout: time.Second * 1}
@@ -82,7 +86,7 @@ func RequestList(url string, hash *map[string]int, channel string) {
 			wg.Add(1)
 			limit++
 			go RequestPost("https://gall.dcinside.com"+key, number, &wg)
-			time.Sleep(time.Millisecond * 250)
+			time.Sleep(time.Millisecond * 200)
 		}
 	}
 
@@ -99,6 +103,10 @@ func RequestPost(url string, number int, wg *sync.WaitGroup) {
 
 	req, err := http.NewRequest("GET", url, nil)
 	req.Header.Set("User-Agent", "Googlebot")
+	req.Header.Set("Connection", "keep-alive")
+	req.Header.Set("DNT", "1")
+	req.Header.Set("Host", "gall.dcinside.com")
+	req.Header.Set("Referer", "https://gall.dcinside.com/board/lists?id=baseball_new8")
 	req.Header.Set("cookie", "PHPSESSID=08cfa4e74d0c71192a0895c9c1f8ec2c; ck_lately_gall=4RD%257C6Pn%257C5CY")
 
 	httpClient := &http.Client{Timeout: time.Second * 1}
@@ -292,7 +300,7 @@ func main() {
 
 	// galleries := []string{"https://gall.dcinside.com/board/lists?id=stream", "https://gall.dcinside.com/board/lists?id=baseball_new8"}
 
-	for now := range time.Tick(time.Second * 4) {
+	for now := range time.Tick(time.Second * 3) {
 
 		RequestList("https://gall.dcinside.com/board/lists?id=stream", &hash, "streamer")
 		RequestList("https://gall.dcinside.com/board/lists?id=baseball_new8", &baseball, "baseball")
