@@ -231,29 +231,29 @@ func GetBase64FromURL(url string) string {
 }
 
 func Publish(pack *Pack, channel string) {
-	startTime := time.Now()
+	// startTime := time.Now()
 
-	for i := range pack.Messages {
-		if len(pack.Messages[i].Images) > 0 {
-			limit := 0
-			for _, url := range pack.Messages[i].Images {
-				if limit > 4 {
-					break
-				}
-				encoded := GetBase64FromURL(url)
-				if encoded != "" {
-					var result map[string]interface{}
-					if err := json.Unmarshal(Visioning(encoded, pack.Messages[i].Number), &result); err != nil {
-						panic(err)
-					}
-					pack.Messages[i].Vision = append(pack.Messages[i].Vision, result)
-				}
-				limit++
-			}
-		}
-	}
+	// for i := range pack.Messages {
+	// 	if len(pack.Messages[i].Images) > 0 {
+	// 		limit := 0
+	// 		for _, url := range pack.Messages[i].Images {
+	// 			if limit > 4 {
+	// 				break
+	// 			}
+	// 			encoded := GetBase64FromURL(url)
+	// 			if encoded != "" {
+	// 				var result map[string]interface{}
+	// 				if err := json.Unmarshal(Visioning(encoded, pack.Messages[i].Number), &result); err != nil {
+	// 					panic(err)
+	// 				}
+	// 				pack.Messages[i].Vision = append(pack.Messages[i].Vision, result)
+	// 			}
+	// 			limit++
+	// 		}
+	// 	}
+	// }
 
-	log.Println("Prediction compelete", time.Since(startTime))
+	// log.Println("Prediction compelete", time.Since(startTime))
 
 	message, _ := json.Marshal(pack)
 
@@ -278,10 +278,10 @@ func main() {
 	log.SetOutput(multiWriter)
 
 	client = redis.NewClient(&redis.Options{
-		Addr: "34.64.196.220:6379",
-		// Addr:     "127.0.0.1:6379",
-		Password: "WCkaZYzyhYR62p42VddCJba7Kn14vdvw",
-		DB:       0,
+		// Addr: "34.64.196.220:6379",
+		Addr: "127.0.0.1:6379",
+		// Password: "WCkaZYzyhYR62p42VddCJba7Kn14vdvw",
+		DB: 0,
 	})
 
 	if pong, err := client.Ping().Result(); err != nil {
