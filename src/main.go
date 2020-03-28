@@ -234,6 +234,7 @@ func main() {
 	log.SetOutput(multiWriter)
 
 	client = redis.NewClient(&redis.Options{
+		// Addr: "seoul.arfrumo.codes:6379",
 		Addr: "34.64.196.220:6379",
 		// Addr:     "127.0.0.1:6379",
 		Password: "WCkaZYzyhYR62p42VddCJba7Kn14vdvw",
@@ -250,7 +251,7 @@ func main() {
 
 	for now := range time.Tick(time.Second * 3) {
 
-		RequestList("https://gall.dcinside.com/board/lists?id=stream", &hash, "streamer")
+		// RequestList("https://gall.dcinside.com/board/lists?id=stream", &hash, "streamer")
 		RequestList("https://gall.dcinside.com/board/lists?id=baseball_new8", &baseball, "baseball")
 		log.Println("One cycle done", now)
 	}
