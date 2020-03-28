@@ -4,21 +4,21 @@ ENV GO111MODULE=on \
     CGO_ENABLED=1
 
 WORKDIR /build
-COPY go.mod go.sum ./
+COPY src/go.mod src/go.sum src/main.go ./
 
 RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main .
+RUN CGO_ENABLED=0 GOOS=linux go build -a -ldflags '-s' -installsuffix cgo -o dcfeeder .
 
 WORKDIR /dist
-RUN cp /build/main .
+RUN cp /build/dcfeeder .
 
 FROM alpine:latest
 
-COPY --from=builder /dist/main / 
+COPY --from=builder /dist/dcfeeder / 
 
-ENTRYPOINT [ "/main" ]
+ENTRYPOINT [ "/dcfeeder" ]
 
 
