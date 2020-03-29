@@ -20,4 +20,8 @@ func (p Proxy) AvailableProxies() {
 func UpdateProxyList() {
 	// file, _ := ioutil.ReadFile("public/proxies.yaml")
 
+	// var temp map[string]interface{}
+	// yaml.Unmarshal(file, &temp)
+
+	// log.Println(temp)
 }

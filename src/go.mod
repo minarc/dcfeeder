@@ -1,4 +1,4 @@
-module dcfeed
+module dcfeed.com
 
 go 1.13
 
