@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	_ "net/http/pprof"
+	"net/url"
 	"os"
 	"regexp"
 	"runtime"
@@ -38,14 +39,47 @@ type Pack struct {
 var hash = map[string]int{}
 var baseball = map[string]int{}
 var pack *Pack
+var proxies []string
 
-func RequestList(url string, hash *map[string]int, channel string) {
-	req, err := http.NewRequest("GET", url, nil)
+type LeastConnection struct {
+}
+
+type RoundRobin struct {
+	Url  string
+	Next *RoundRobin
+}
+
+func Make(proxies []string) {
+	head := new(RoundRobin)
+	cursor := head
+
+	for _, p := range proxies {
+		cursor = &RoundRobin{Url: p}
+		cursor = cursor.Next
+	}
+
+	cursor.Next = head
+}
+
+func RequestBalancing(urls []string) {
+	var wg sync.WaitGroup
+	wg.Add(len(urls))
+
+	for i, u := range urls {
+		next, _ := url.Parse(proxies[i])
+		go RequestPost(u, 0, &http.Transport{Proxy: http.ProxyURL(next)}, &wg)
+		next, _ = url.Parse(proxies[i])
+	}
+
+	wg.Wait()
+}
+
+func RequestList(target string, hash *map[string]int, channel string) {
+	req, err := http.NewRequest("GET", target, nil)
 	req.Header.Set("User-Agent", "Googlebot")
 	req.Header.Set("Connection", "keep-alive")
-	req.Header.Set("DNT", "1")
 	req.Header.Set("Host", "gall.dcinside.com")
-	req.Header.Set("Referer", "https://gall.dcinside.com/board/lists?id=baseball_new8")
+	req.Header.Set("Referer", "https://gall.dcinside.com")
 	req.Header.Set("cookie", "PHPSESSID=08cfa4e74d0c71192a0895c9c1f8ec2c; ck_lately_gall=4RD%257C6Pn%257C5CY")
 
 	httpClient := &http.Client{Timeout: time.Second * 1}
@@ -76,20 +110,17 @@ func RequestList(url string, hash *map[string]int, channel string) {
 		}
 	})
 
-	var wg sync.WaitGroup
 	pack = new(Pack)
 
-	limit := 0
-	for key, number := range current {
-		if _, exist := (*hash)[key]; !exist && limit < 9 {
-			wg.Add(1)
-			limit++
-			go RequestPost("https://gall.dcinside.com"+key, number, &wg)
-			time.Sleep(time.Millisecond * 200)
+	var targets []string
+	for key := range current {
+		if _, exist := (*hash)[key]; !exist {
+			targets = append(targets, key)
 		}
 	}
 
-	wg.Wait()
+	RequestBalancing(targets)
+
 	*hash = current
 
 	if len(pack.Messages) > 0 {
@@ -97,22 +128,21 @@ func RequestList(url string, hash *map[string]int, channel string) {
 	}
 }
 
-func RequestPost(url string, number int, wg *sync.WaitGroup) {
+func RequestPost(url string, number int, transport *http.Transport, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	req, err := http.NewRequest("GET", url, nil)
 	req.Header.Set("User-Agent", "Googlebot")
 	req.Header.Set("Connection", "keep-alive")
-	req.Header.Set("DNT", "1")
 	req.Header.Set("Host", "gall.dcinside.com")
 	req.Header.Set("Referer", "https://gall.dcinside.com/board/lists?id=baseball_new8")
 	req.Header.Set("cookie", "PHPSESSID=08cfa4e74d0c71192a0895c9c1f8ec2c; ck_lately_gall=4RD%257C6Pn%257C5CY")
 
-	httpClient := &http.Client{Timeout: time.Second * 1}
+	httpClient := &http.Client{Transport: transport, Timeout: time.Second * 3}
 
-	// startTime := time.Now()
+	startTime := time.Now()
 	res, err := httpClient.Do(req)
-	// log.Println(number, time.Since(startTime))
+	log.Println(number, time.Since(startTime))
 
 	if err != nil {
 		log.Println(err)
@@ -235,10 +265,10 @@ func main() {
 
 	client = redis.NewClient(&redis.Options{
 		// Addr: "seoul.arfrumo.codes:6379",
-		Addr: "34.64.196.220:6379",
-		// Addr:     "127.0.0.1:6379",
-		Password: "WCkaZYzyhYR62p42VddCJba7Kn14vdvw",
-		DB:       0,
+		// Addr: "34.64.196.220:6379",
+		Addr: "127.0.0.1:6379",
+		// Password: "WCkaZYzyhYR62p42VddCJba7Kn14vdvw",
+		DB: 0,
 	})
 
 	if pong, err := client.Ping().Result(); err != nil {
@@ -247,11 +277,7 @@ func main() {
 		log.Println(pong)
 	}
 
-	// galleries := []string{"https://gall.dcinside.com/board/lists?id=stream", "https://gall.dcinside.com/board/lists?id=baseball_new8"}
-
-	for now := range time.Tick(time.Second * 3) {
-
-		// RequestList("https://gall.dcinside.com/board/lists?id=stream", &hash, "streamer")
+	for now := range time.Tick(time.Second * 4) {
 		RequestList("https://gall.dcinside.com/board/lists?id=baseball_new8", &baseball, "baseball")
 		log.Println("One cycle done", now)
 	}
