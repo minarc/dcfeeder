@@ -17,7 +17,7 @@ import (
 	"sync"
 	"time"
 
-	"dcfee.com/model/proxies"
+	proxies "example.com/user/hello/model"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/go-redis/redis/v7"

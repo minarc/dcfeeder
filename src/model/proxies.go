@@ -1,8 +1,15 @@
 package proxies
 
+import (
+	"io/ioutil"
+	"log"
+	"net/url"
+
+	"gopkg.in/yaml.v2"
+)
+
 type Proxy struct {
-	Host string
-	Port int
+	Url *url.URL
 }
 
 func (p *Proxy) getRandomProxy() {
@@ -17,11 +24,22 @@ func (p Proxy) AvailableProxies() {
 
 }
 
-func UpdateProxyList() {
-	// file, _ := ioutil.ReadFile("public/proxies.yaml")
+func UpdateProxyList() []Proxy {
+	var result []Proxy
 
-	// var temp map[string]interface{}
-	// yaml.Unmarshal(file, &temp)
+	if file, err := ioutil.ReadFile("../public/proxies.yaml"); err != nil {
+		log.Fatal(err)
+	} else {
+		proxies := make(map[interface{}][]string)
+		if err := yaml.Unmarshal(file, &proxies); err != nil {
+			log.Fatal(err)
+		}
 
-	// log.Println(temp)
+		for _, p := range proxies["korea"] {
+			url, _ := url.Parse(p)
+			result = append(result, Proxy{Url: url})
+		}
+
+	}
+	return result
 }
