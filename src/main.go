@@ -42,7 +42,7 @@ var hash = map[string]int{}
 var baseball = map[string]int{}
 var pack *Pack
 
-var proxyList []string
+var proxy []string
 
 type LeastConnection struct {
 }
@@ -69,9 +69,9 @@ func RequestBalancing(urls []string) {
 	wg.Add(len(urls))
 
 	for i, u := range urls {
-		next, _ := url.Parse(proxyList[i])
+		next, _ := url.Parse((*proxy)[i])
 		go RequestPost(u, 0, &http.Transport{Proxy: http.ProxyURL(next)}, &wg)
-		next, _ = url.Parse(proxyList[i])
+		next, _ = url.Parse((*proxy)[i])
 	}
 
 	wg.Wait()
@@ -280,7 +280,7 @@ func main() {
 		log.Println(pong)
 	}
 
-	proxies.UpdateProxyList()
+	proxy = proxies.UpdateProxyList()
 
 	for now := range time.Tick(time.Second * 4) {
 		RequestList("https://gall.dcinside.com/board/lists?id=baseball_new8", &baseball, "baseball")
