@@ -125,6 +125,10 @@ func RequestList(target string, hash *map[string]int, channel string) {
 		}
 	}
 
+	if len(target) > 10 {
+
+	}
+
 	RequestBalancing(targets)
 
 	*hash = current
@@ -270,8 +274,8 @@ func main() {
 
 	client = redis.NewClient(&redis.Options{
 		// Addr: "seoul.arfrumo.codes:6379",
-		// Addr: "34.64.196.220:6379",
-		Addr:     "127.0.0.1:6379",
+		Addr: "34.64.196.220:6379",
+		// Addr: "127.0.0.1:6379",
 		Password: "WCkaZYzyhYR62p42VddCJba7Kn14vdvw",
 		DB:       0,
 	})
