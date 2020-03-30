@@ -16,7 +16,7 @@ import (
 	"sync"
 	"time"
 
-	proxies "example.com/user/hello/model"
+	proxies "dcfeed/model"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/go-redis/redis/v7"

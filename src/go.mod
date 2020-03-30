@@ -1,4 +1,4 @@
-module example.com/user/hello
+module dcfeed
 
 go 1.13
 

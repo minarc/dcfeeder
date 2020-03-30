@@ -4,7 +4,7 @@ ENV GO111MODULE=on \
     CGO_ENABLED=1
 
 WORKDIR /build
-COPY src/go.mod src/go.sum src/main.go ./
+COPY /src .
 
 RUN go mod download
 
