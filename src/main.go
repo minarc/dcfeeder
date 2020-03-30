@@ -89,6 +89,7 @@ func RequestList(target string, hash *map[string]int, channel string) {
 	req.Header.Set("Referer", "https://gall.dcinside.com")
 
 	httpClient := &http.Client{Timeout: time.Second * 1}
+
 	res, err := httpClient.Do(req)
 
 	if err != nil {
@@ -125,8 +126,8 @@ func RequestList(target string, hash *map[string]int, channel string) {
 		}
 	}
 
-	if len(target) > 10 {
-
+	if len(targets) > 10 {
+		targets = targets[:10]
 	}
 
 	RequestBalancing(targets)
@@ -147,7 +148,7 @@ func RequestPost(url string, number int, proxy proxies.Proxy, wg *sync.WaitGroup
 	req.Header.Set("Host", "gall.dcinside.com")
 	req.Header.Set("Referer", "https://gall.dcinside.com/board/lists?id=baseball_new8")
 
-	httpClient := &http.Client{Transport: &http.Transport{Proxy: http.ProxyURL(proxy.Url)}, Timeout: time.Second * 1}
+	httpClient := &http.Client{Transport: &http.Transport{Proxy: http.ProxyURL(proxy.Url)}, Timeout: time.Second * 3}
 
 	startTime := time.Now()
 	res, err := httpClient.Do(req)
