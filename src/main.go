@@ -8,7 +8,6 @@ import (
 	"log"
 	"net/http"
 	_ "net/http/pprof"
-	"net/url"
 	"os"
 	"regexp"
 	"runtime"
@@ -42,39 +41,44 @@ var hash = map[string]int{}
 var baseball = map[string]int{}
 var pack *Pack
 
-var proxy []string
+var proxy []proxies.Proxy
+var round *Node
 
-type LeastConnection struct {
+type Node struct {
+	Proxy proxies.Proxy
+	Next  *Node
 }
 
-type RoundRobin struct {
-	Url  string
-	Next *RoundRobin
-}
+func Make(proxies []proxies.Proxy) *Node {
+	var head *Node = new(Node)
+	var cursor *Node = head
 
-func Make(proxies []string) {
-	head := new(RoundRobin)
-	cursor := head
+	for i, p := range proxies {
+		cursor.Proxy = p
+		cursor.Next = new(Node)
 
-	for _, p := range proxies {
-		cursor = &RoundRobin{Url: p}
-		cursor = cursor.Next
+		if i != len(proxies)-1 {
+			cursor = cursor.Next
+		}
 	}
 
 	cursor.Next = head
+
+	return head
 }
 
 func RequestBalancing(urls []string) {
 	var wg sync.WaitGroup
 	wg.Add(len(urls))
 
+	start := time.Now()
 	for i, u := range urls {
-		next, _ := url.Parse((*proxy)[i])
-		go RequestPost(u, 0, &http.Transport{Proxy: http.ProxyURL(next)}, &wg)
-		next, _ = url.Parse((*proxy)[i])
+		go RequestPost(fmt.Sprintf("https://gall.dcinside.com%s", u), i, round.Proxy, &wg)
+		round = round.Next
 	}
 
 	wg.Wait()
+	log.Println(time.Since(start))
 }
 
 func RequestList(target string, hash *map[string]int, channel string) {
@@ -83,7 +87,6 @@ func RequestList(target string, hash *map[string]int, channel string) {
 	req.Header.Set("Connection", "keep-alive")
 	req.Header.Set("Host", "gall.dcinside.com")
 	req.Header.Set("Referer", "https://gall.dcinside.com")
-	req.Header.Set("cookie", "PHPSESSID=08cfa4e74d0c71192a0895c9c1f8ec2c; ck_lately_gall=4RD%257C6Pn%257C5CY")
 
 	httpClient := &http.Client{Timeout: time.Second * 1}
 	res, err := httpClient.Do(req)
@@ -131,7 +134,7 @@ func RequestList(target string, hash *map[string]int, channel string) {
 	}
 }
 
-func RequestPost(url string, number int, transport *http.Transport, wg *sync.WaitGroup) {
+func RequestPost(url string, number int, proxy proxies.Proxy, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	req, err := http.NewRequest("GET", url, nil)
@@ -139,13 +142,12 @@ func RequestPost(url string, number int, transport *http.Transport, wg *sync.Wai
 	req.Header.Set("Connection", "keep-alive")
 	req.Header.Set("Host", "gall.dcinside.com")
 	req.Header.Set("Referer", "https://gall.dcinside.com/board/lists?id=baseball_new8")
-	req.Header.Set("cookie", "PHPSESSID=08cfa4e74d0c71192a0895c9c1f8ec2c; ck_lately_gall=4RD%257C6Pn%257C5CY")
 
-	httpClient := &http.Client{Transport: transport, Timeout: time.Second * 3}
+	httpClient := &http.Client{Timeout: time.Second * 3}
 
 	startTime := time.Now()
 	res, err := httpClient.Do(req)
-	log.Println(number, time.Since(startTime))
+	log.Println(number, proxy.Location, time.Since(startTime))
 
 	if err != nil {
 		log.Println(err)
@@ -280,7 +282,7 @@ func main() {
 		log.Println(pong)
 	}
 
-	proxy = proxies.UpdateProxyList()
+	round = Make(proxies.UpdateProxyList())
 
 	for now := range time.Tick(time.Second * 4) {
 		RequestList("https://gall.dcinside.com/board/lists?id=baseball_new8", &baseball, "baseball")

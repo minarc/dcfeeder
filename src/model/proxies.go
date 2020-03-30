@@ -9,7 +9,8 @@ import (
 )
 
 type Proxy struct {
-	Url *url.URL
+	Url      *url.URL
+	Location string
 }
 
 func (p *Proxy) getRandomProxy() {
@@ -30,16 +31,18 @@ func UpdateProxyList() []Proxy {
 	if file, err := ioutil.ReadFile("../public/proxies.yaml"); err != nil {
 		log.Fatal(err)
 	} else {
-		proxies := make(map[interface{}][]string)
+		proxies := make(map[interface{}][]map[string]string)
 		if err := yaml.Unmarshal(file, &proxies); err != nil {
 			log.Fatal(err)
 		}
 
 		for _, p := range proxies["korea"] {
-			url, _ := url.Parse(p)
-			result = append(result, Proxy{Url: url})
+			if url, err := url.Parse(p["host"]); err != nil {
+				log.Fatal(err)
+			} else {
+				result = append(result, Proxy{Url: url, Location: p["location"]})
+			}
 		}
-
 	}
 	return result
 }
