@@ -28,7 +28,7 @@ func (p Proxy) AvailableProxies() {
 func UpdateProxyList() []Proxy {
 	var result []Proxy
 
-	if file, err := ioutil.ReadFile("../public/proxies.yaml"); err != nil {
+	if file, err := ioutil.ReadFile("./public/proxies.yaml"); err != nil {
 		log.Fatal(err)
 	} else {
 		proxies := make(map[interface{}][]map[string]string)
