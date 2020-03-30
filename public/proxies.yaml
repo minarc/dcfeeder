@@ -1,6 +1,7 @@
 korea:
   - host: "http://218.145.215.150:3128"
     location: "서울시 강남구"
-japan:
-hongkong:
-taiwan:
+  - host: "http://180.44.197.150:8080"
+    location: "일본 교토"
+  - host: "http://52.140.242.103:3128"
+    location: "일본 도쿄"
