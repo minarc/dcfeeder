@@ -147,7 +147,7 @@ func RequestPost(url string, number int, proxy proxies.Proxy, wg *sync.WaitGroup
 	req.Header.Set("Host", "gall.dcinside.com")
 	req.Header.Set("Referer", "https://gall.dcinside.com/board/lists?id=baseball_new8")
 
-	httpClient := &http.Client{Timeout: time.Second * 3}
+	httpClient := &http.Client{Transport: &http.Transport{Proxy: http.ProxyURL(proxy.Url)}, Timeout: time.Second * 1}
 
 	startTime := time.Now()
 	res, err := httpClient.Do(req)
