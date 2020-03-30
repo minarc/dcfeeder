@@ -5,6 +5,7 @@ ENV GO111MODULE=on \
 
 WORKDIR /build
 COPY /src .
+COPY /public .
 
 RUN go mod download
 
