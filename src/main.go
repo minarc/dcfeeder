@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	_ "net/http/pprof"
+	"net/url"
 	"os"
 	"regexp"
 	"runtime"
@@ -41,27 +41,26 @@ var hash = map[string]int{}
 var baseball = map[string]int{}
 var pack *Pack
 
-var proxy []proxies.Proxy
+var proxy []proxies.Server
 var round *Node
 
 type Node struct {
-	Proxy proxies.Proxy
-	Next  *Node
+	Server proxies.Server
+	Next   *Node
 }
 
-func Make(proxies []proxies.Proxy) *Node {
+func ProxyLinkedList(servers []proxies.Server) *Node {
 	var head *Node = new(Node)
 	var cursor *Node = head
 
-	for i, p := range proxies {
-		cursor.Proxy = p
+	for _, p := range servers {
+		cursor.Server = p
 		cursor.Next = new(Node)
 
-		if i != len(proxies)-1 {
-			cursor = cursor.Next
-		}
+		cursor = cursor.Next
 	}
 
+	cursor.Server = proxies.Server{Transport: http.DefaultTransport, Location: "서울 GCP"}
 	cursor.Next = head
 
 	return head
@@ -73,8 +72,15 @@ func RequestBalancing(urls []string) {
 
 	start := time.Now()
 	for i, u := range urls {
-		go RequestPost(fmt.Sprintf("https://gall.dcinside.com%s", u), i, round.Proxy, &wg)
-		round = round.Next
+		if parsed, err := url.ParseQuery(strings.Split(u, "?")[1]); err != nil {
+			log.Println(err.Error())
+		} else {
+			gallery := parsed["id"][0]
+			number := parsed["no"][0]
+
+			go RequestPost(fmt.Sprintf("https://m.dcinside.com/board/%s/%s", gallery, number), i, &round.Server, &wg)
+			round = round.Next
+		}
 	}
 
 	wg.Wait()
@@ -84,11 +90,10 @@ func RequestBalancing(urls []string) {
 func RequestList(target string, hash *map[string]int, channel string) {
 	req, err := http.NewRequest("GET", target, nil)
 	req.Header.Set("User-Agent", "Googlebot")
-	req.Header.Set("Connection", "keep-alive")
 	req.Header.Set("Host", "gall.dcinside.com")
 	req.Header.Set("Referer", "https://gall.dcinside.com")
 
-	httpClient := &http.Client{Timeout: time.Second * 1}
+	httpClient := &http.Client{Timeout: time.Millisecond * 1000}
 
 	res, err := httpClient.Do(req)
 
@@ -135,34 +140,43 @@ func RequestList(target string, hash *map[string]int, channel string) {
 	*hash = current
 
 	if len(pack.Messages) > 0 {
-		Publish(pack, channel)
+		Publish(float32(len(targets)), pack, channel)
 	}
 }
 
-func RequestPost(url string, number int, proxy proxies.Proxy, wg *sync.WaitGroup) {
+func RequestPost(url string, number int, server *proxies.Server, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	req, err := http.NewRequest("GET", url, nil)
-	req.Header.Set("User-Agent", "Googlebot")
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Linux; U; Android 4.4.2; en-us; SCH-I535 Build/KOT49H) AppleWebKit/534.30 (KHTML, like Gecko) Version/4.0 Mobile Safari/534.30")
 	req.Header.Set("Connection", "keep-alive")
-	req.Header.Set("Host", "gall.dcinside.com")
-	req.Header.Set("Referer", "https://gall.dcinside.com/board/lists?id=baseball_new8")
+	req.Header.Set("Referer", "https://m.dcinside.com")
 
-	httpClient := &http.Client{Transport: &http.Transport{Proxy: http.ProxyURL(proxy.Url)}, Timeout: time.Second * 3}
+	counter := 0
+
+RETRY:
+	httpClient := &http.Client{Transport: server.Transport, Timeout: time.Millisecond * 500}
 
 	startTime := time.Now()
 	res, err := httpClient.Do(req)
-	log.Println(number, proxy.Location, time.Since(startTime))
 
 	if err != nil {
-		log.Println(err)
-		return
+		server.Failed++
+		counter++
+		if counter > 3 {
+			return
+		}
+		goto RETRY
 	}
 
 	if res.StatusCode != 200 {
 		log.Println(res.StatusCode, res.Status)
+		server.Failed++
 		return
 	}
+
+	server.Success++
+	log.Println(server.Location, float32(server.Success)/float32(server.Success+server.Failed), time.Since(startTime))
 
 	doc, err := goquery.NewDocumentFromResponse(res)
 	if err != nil {
@@ -173,36 +187,33 @@ func RequestPost(url string, number int, proxy proxies.Proxy, wg *sync.WaitGroup
 	post := new(Post)
 	post.Number = number
 	post.Url = url
+	post.Title = strings.Split(doc.Find("title").Text(), "-")[0]
 
 	doc.Find("meta").Each(func(i int, s *goquery.Selection) {
-		op, exist := s.Attr("property")
+		name, exist := s.Attr("name")
 		if !exist {
 			return
 		}
-		con, exist := s.Attr("content")
+		content, exist := s.Attr("content")
 		if !exist {
 			return
 		}
 
-		if op == "og:image" {
-			post.Thumbnail = strings.Replace(con, "write", "images", 1)
-		} else if op == "og:title" {
-			splited := strings.Split(con, "-")
-			title := strings.Join(splited[:1], "")
-			post.Title = strings.TrimSpace(title)
-		} else if op == "og:description" {
-			if strings.HasPrefix(con, "국내 최대") {
-				con = ""
+		if name == "og:image" {
+			post.Thumbnail = strings.Replace(content, "write", "images", 1)
+		} else if name == "description" {
+			if strings.HasPrefix(content, "국내 최대") {
+				content = ""
 			}
-			post.Description = con
-		} else if op == "og:updated_time" {
-			post.Updated = con
+			post.Description = content
+		} else if name == "og:updated_time" {
+			post.Updated = content
 		}
 	})
 
 	re := regexp.MustCompile("dcimg[0-9]")
-	doc.Find(".writing_view_box").Find("img").Each(func(i int, s *goquery.Selection) {
-		url, exist := s.Attr("src")
+	doc.Find(".thum-txtin").Find("img").Each(func(i int, s *goquery.Selection) {
+		url, exist := s.Attr("data-original")
 		if !exist {
 			return
 		}
@@ -212,51 +223,20 @@ func RequestPost(url string, number int, proxy proxies.Proxy, wg *sync.WaitGroup
 		post.Images = append(post.Images, url)
 	})
 
+	if len(post.Images) > 0 {
+		post.Thumbnail = post.Images[0]
+	}
+
 	pack.Messages = append(pack.Messages, *post)
 }
 
-func Visioning(encoded string, number int) []byte {
-	payload := strings.NewReader(fmt.Sprintf(`{
-		"instances":
-		[
-		  {
-			"image_bytes":
-			{
-			  "b64": "%s"
-			},
-			"key": "%d"
-		  }
-		]
-	  }`, encoded, number))
-
-	req, err := http.NewRequest("POST", "http://localhost:8501/v1/models/default:predict", payload)
-	if err != nil {
-		return []byte("err")
-	}
-
-	req.Header.Add("content-type", "application/json")
-
-	res, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return []byte("err")
-	}
-	defer res.Body.Close()
-
-	body, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return []byte("err")
-	}
-
-	return body
-}
-
-func Publish(pack *Pack, channel string) {
+func Publish(target float32, pack *Pack, channel string) {
 	message, _ := json.Marshal(pack)
 
 	startTime := time.Now()
 	client.Publish(channel, message)
 	client.Set(channel, message, 0)
-	log.Println(len(pack.Messages), "Message published", channel, time.Since(startTime))
+	log.Println("Message published", channel, time.Since(startTime), float32(len(pack.Messages))/target*100)
 }
 
 var client *redis.Client
@@ -287,10 +267,10 @@ func main() {
 		log.Println(pong)
 	}
 
-	round = Make(proxies.UpdateProxyList())
+	round = ProxyLinkedList(proxies.UpdateServerList())
 
-	for now := range time.Tick(time.Second * 4) {
+	for range time.Tick(time.Second * 4) {
 		RequestList("https://gall.dcinside.com/board/lists?id=baseball_new8", &baseball, "baseball")
-		log.Println("One cycle done", now)
+		log.Println("One cycle done")
 	}
 }

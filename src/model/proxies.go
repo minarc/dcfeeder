@@ -3,30 +3,26 @@ package proxies
 import (
 	"io/ioutil"
 	"log"
+	"net/http"
 	"net/url"
 
+	_ "github.com/Bogdan-D/go-socks4"
+	"golang.org/x/net/proxy"
 	"gopkg.in/yaml.v2"
 )
 
-type Proxy struct {
-	Url      *url.URL
-	Location string
+type Server struct {
+	Transport http.RoundTripper
+	Url       *url.URL
+	Type      string
+	Location  string
+	Success   int
+	Failed    int
+	Latency   int
 }
 
-func (p *Proxy) getRandomProxy() {
-
-}
-
-func (p *Proxy) init() {
-	// file, _ := ioutil.ReadFile("public/proxies.yaml")
-}
-
-func (p Proxy) AvailableProxies() {
-
-}
-
-func UpdateProxyList() []Proxy {
-	var result []Proxy
+func UpdateServerList() []Server {
+	var result []Server
 
 	if file, err := ioutil.ReadFile("proxies.yaml"); err != nil {
 		log.Fatal(err)
@@ -37,10 +33,25 @@ func UpdateProxyList() []Proxy {
 		}
 
 		for _, p := range proxies["korea"] {
-			if url, err := url.Parse(p["host"]); err != nil {
-				log.Fatal(err)
-			} else {
-				result = append(result, Proxy{Url: url, Location: p["location"]})
+			if p["protocol"] == "http" || p["protocol"] == "https" {
+				if url, err := url.Parse(p["host"]); err != nil {
+					log.Fatal(err)
+				} else {
+					result = append(result, Server{Transport: &http.Transport{Proxy: http.ProxyURL(url)}, Url: url, Location: p["location"]})
+				}
+			} else if p["protocol"] == "socks5" {
+				if dialer, err := proxy.SOCKS5("tcp", p["host"], nil, proxy.Direct); err != nil {
+					log.Fatal(err)
+				} else {
+					result = append(result, Server{Transport: &http.Transport{Dial: dialer.Dial}, Location: p["location"]})
+				}
+			} else if p["protocol"] == "socks4" {
+				if url, err := url.Parse(p["host"]); err != nil {
+					log.Fatal(err)
+				} else {
+					dialer, _ := proxy.FromURL(url, proxy.Direct)
+					result = append(result, Server{Transport: &http.Transport{Dial: dialer.Dial}, Location: p["location"]})
+				}
 			}
 		}
 	}
