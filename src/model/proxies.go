@@ -46,7 +46,7 @@ func UpdateServerList() []Server {
 					result = append(result, Server{Transport: &http.Transport{Dial: dialer.Dial}, Location: p["location"]})
 				}
 			} else if p["protocol"] == "socks4" {
-				if url, err := url.Parse(p["host"]); err != nil {
+				if url, err := url.Parse("socks4://" + p["host"]); err != nil {
 					log.Fatal(err)
 				} else {
 					dialer, _ := proxy.FromURL(url, proxy.Direct)

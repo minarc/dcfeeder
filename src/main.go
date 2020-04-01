@@ -44,6 +44,8 @@ var pack *Pack
 var proxy []proxies.Server
 var round *Node
 
+var httpConnectionPool *http.Client
+
 type Node struct {
 	Server proxies.Server
 	Next   *Node
@@ -93,9 +95,7 @@ func RequestList(target string, hash *map[string]int, channel string) {
 	req.Header.Set("Host", "gall.dcinside.com")
 	req.Header.Set("Referer", "https://gall.dcinside.com")
 
-	httpClient := &http.Client{Timeout: time.Millisecond * 1000}
-
-	res, err := httpClient.Do(req)
+	res, err := httpConnectionPool.Do(req)
 
 	if err != nil {
 		log.Println(err)
@@ -106,6 +106,8 @@ func RequestList(target string, hash *map[string]int, channel string) {
 		log.Println(res.Status)
 		return
 	}
+
+	defer res.Body.Close()
 
 	doc, err := goquery.NewDocumentFromResponse(res)
 	if err != nil {
@@ -155,7 +157,7 @@ func RequestPost(url string, number int, server *proxies.Server, wg *sync.WaitGr
 	counter := 0
 
 RETRY:
-	httpClient := &http.Client{Transport: server.Transport, Timeout: time.Millisecond * 500}
+	httpClient := &http.Client{Transport: server.Transport, Timeout: time.Millisecond * 400}
 
 	startTime := time.Now()
 	res, err := httpClient.Do(req)
@@ -168,6 +170,8 @@ RETRY:
 		}
 		goto RETRY
 	}
+
+	defer res.Body.Close()
 
 	if res.StatusCode != 200 {
 		log.Println(res.StatusCode, res.Status)
@@ -231,12 +235,14 @@ RETRY:
 }
 
 func Publish(target float32, pack *Pack, channel string) {
-	message, _ := json.Marshal(pack)
-
-	startTime := time.Now()
-	client.Publish(channel, message)
-	client.Set(channel, message, 0)
-	log.Println("Message published", channel, time.Since(startTime), float32(len(pack.Messages))/target*100)
+	if message, err := json.Marshal(pack); err != nil {
+		log.Println(err.Error())
+	} else {
+		startTime := time.Now()
+		client.Publish(channel, message)
+		client.Set(channel, message, 0)
+		log.Println("Message published", channel, time.Since(startTime), target, float32(len(pack.Messages))/target*100)
+	}
 }
 
 var client *redis.Client
@@ -269,7 +275,16 @@ func main() {
 
 	round = ProxyLinkedList(proxies.UpdateServerList())
 
-	for range time.Tick(time.Second * 4) {
+	defaultTransportPointer, ok := http.DefaultTransport.(*http.Transport)
+	if !ok {
+		panic(fmt.Sprintf("defaultRoundTripper not an *http.Transport"))
+	}
+	defaultTransport := *defaultTransportPointer
+	defaultTransport.MaxIdleConns = 10
+	defaultTransport.MaxIdleConnsPerHost = 10
+	httpConnectionPool = &http.Client{Transport: &defaultTransport, Timeout: time.Second}
+
+	for range time.Tick(time.Second * 3) {
 		RequestList("https://gall.dcinside.com/board/lists?id=baseball_new8", &baseball, "baseball")
 		log.Println("One cycle done")
 	}
