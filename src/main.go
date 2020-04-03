@@ -11,6 +11,7 @@ import (
 	"os"
 	"regexp"
 	"runtime"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -35,6 +36,18 @@ type Post struct {
 
 type Pack struct {
 	Messages []Post `json:"result"`
+}
+
+func (p Pack) Len() int {
+	return len(p.Messages)
+}
+
+func (p Pack) Swap(i, j int) {
+	p.Messages[i], p.Messages[j] = p.Messages[j], p.Messages[i]
+}
+
+func (p Pack) Less(i, j int) bool {
+	return p.Messages[i].Number < p.Messages[j].Number
 }
 
 var hash = map[string]int{}
@@ -142,7 +155,7 @@ func RequestList(target string, hash *map[string]int, channel string) {
 	*hash = current
 
 	if len(pack.Messages) > 0 {
-		Publish(float32(len(targets)), pack, channel)
+		go Publish(float32(len(targets)), pack, channel)
 	}
 }
 
@@ -166,6 +179,7 @@ RETRY:
 		server.Failed++
 		counter++
 		if counter > 3 {
+			log.Println(server.Location, "Failed")
 			return
 		}
 		goto RETRY
@@ -235,12 +249,23 @@ RETRY:
 }
 
 func Publish(target float32, pack *Pack, channel string) {
+	startTime := time.Now()
+	sort.Sort(pack)
+
 	if message, err := json.Marshal(pack); err != nil {
 		log.Println(err.Error())
 	} else {
-		startTime := time.Now()
 		client.Publish(channel, message)
-		client.Set(channel, message, 0)
+
+		for _, post := range pack.Messages {
+			if p, err := json.Marshal(post); err != nil {
+				log.Println(err.Error())
+			} else {
+				client.LPush(channel, p)
+				client.LTrim(channel, 0, 9)
+			}
+		}
+
 		log.Println("Message published", channel, time.Since(startTime), target, float32(len(pack.Messages))/target*100)
 	}
 }
@@ -262,9 +287,9 @@ func main() {
 	client = redis.NewClient(&redis.Options{
 		// Addr: "seoul.arfrumo.codes:6379",
 		// Addr: "34.64.196.220:6379",
-		Addr:     "127.0.0.1:6379",
-		Password: "WCkaZYzyhYR62p42VddCJba7Kn14vdvw",
-		DB:       0,
+		Addr: "127.0.0.1:6379",
+		// Password: "WCkaZYzyhYR62p42VddCJba7Kn14vdvw",
+		DB: 0,
 	})
 
 	if pong, err := client.Ping().Result(); err != nil {
@@ -280,8 +305,8 @@ func main() {
 		panic(fmt.Sprintf("defaultRoundTripper not an *http.Transport"))
 	}
 	defaultTransport := *defaultTransportPointer
-	defaultTransport.MaxIdleConns = 10
-	defaultTransport.MaxIdleConnsPerHost = 10
+	defaultTransport.MaxIdleConns = 5
+	defaultTransport.MaxIdleConnsPerHost = 5
 	httpConnectionPool = &http.Client{Transport: &defaultTransport, Timeout: time.Second}
 
 	for range time.Tick(time.Second * 3) {

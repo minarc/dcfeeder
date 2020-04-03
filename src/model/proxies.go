@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"time"
 
 	_ "github.com/Bogdan-D/go-socks4"
 	"golang.org/x/net/proxy"
@@ -18,13 +19,13 @@ type Server struct {
 	Location  string
 	Success   int
 	Failed    int
-	Latency   int
+	Latency   time.Duration
 }
 
 func UpdateServerList() []Server {
 	var result []Server
 
-	if file, err := ioutil.ReadFile("proxies.yaml"); err != nil {
+	if file, err := ioutil.ReadFile("../public/proxies.yaml"); err != nil {
 		log.Fatal(err)
 	} else {
 		proxies := make(map[interface{}][]map[string]string)
