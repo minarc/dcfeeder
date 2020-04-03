@@ -25,7 +25,7 @@ type Server struct {
 func UpdateServerList() []Server {
 	var result []Server
 
-	if file, err := ioutil.ReadFile("../public/proxies.yaml"); err != nil {
+	if file, err := ioutil.ReadFile("proxies.yaml"); err != nil {
 		log.Fatal(err)
 	} else {
 		proxies := make(map[interface{}][]map[string]string)
